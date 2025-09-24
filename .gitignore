@@ -136,4 +136,27 @@ dist
 
 # Vite logs files
 vite.config.js.timestamp-*
+# Datos sensibles del proyecto
+*.env
+*.env.local
+*.env.production
+/data/responses/
+/data/participants/
+
+# Documentos con información sensible
+**/datos-personales/
+**/respuestas-reales/
+
+# Archivos temporales
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Logs del proyecto
+logs/
+*.log
+
+# Archivos de configuración local
+config/local.*
 vite.config.ts.timestamp-*
