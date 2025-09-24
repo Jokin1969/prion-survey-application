@@ -88,9 +88,23 @@ app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] })
 
 // --- Mailer ---
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: EMAIL_USER, pass: EMAIL_PASS }
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // SSL
+  auth: { user: EMAIL_USER, pass: EMAIL_PASS },
+  logger: true,  // logs útiles
+  debug: true    // logs útiles
 });
+
+// Verifica credenciales SMTP al arrancar
+transporter.verify((err, success) => {
+  if (err) {
+    console.error('[MAIL VERIFY ERROR]', err);
+  } else {
+    console.log('[MAIL VERIFY] OK:', success);
+  }
+});
+
 
 async function sendNotification({ participantId, response, ts }) {
   if (!EMAIL_USER || !EMAIL_PASS || !RESEARCH_EMAIL) return;
