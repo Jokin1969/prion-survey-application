@@ -22,15 +22,21 @@ const EMAIL_PASS = process.env.EMAIL_PASS;
 const RESEARCH_EMAIL = process.env.RESEARCH_EMAIL;
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'data.db');
 const SUBMISSION_TOKEN = process.env.SUBMISSION_TOKEN; // optional
+const DATA_DIR = path.join(__dirname, 'data');
+const ADMIN_USER = process.env.ADMIN_USER;
+const ADMIN_PASS = process.env.ADMIN_PASS;
 
 if (!EMAIL_USER || !EMAIL_PASS || !RESEARCH_EMAIL) {
   console.warn('[WARN] EMAIL_USER/EMAIL_PASS/RESEARCH_EMAIL no configurados. El envío de emails fallará.');
 }
 
-// --- Ensure data dir exists ---
-const dataDir = path.dirname(DB_PATH);
-if (dataDir && dataDir !== '.' && !fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// --- Ensure data dirs exist ---
+const dbDir = path.dirname(DB_PATH);
+if (dbDir && dbDir !== '.' && !fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
 // --- DB init (SQLite with unique constraint) ---
@@ -51,6 +57,35 @@ const insertStmt = db.prepare(
    VALUES (@participant_id, @response, @ts_utc, @ip, @user_agent)`
 );
 const getStmt = db.prepare(`SELECT * FROM responses WHERE participant_id = ?`);
+
+// --- CSV logging helpers ---
+function csvEscape(s) {
+  if (s == null) return '';
+  const str = String(s);
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+function appendCsvRow(record) {
+  try {
+    const csvFile = path.join(DATA_DIR, 'responses.csv');
+    const hasFile = fs.existsSync(csvFile) && fs.statSync(csvFile).size > 0;
+    if (!hasFile) {
+      fs.writeFileSync(csvFile, 'participant_id,response,ts_utc,ip,user_agent\n');
+    }
+    const row = [
+      csvEscape(record.participant_id),
+      csvEscape(record.response),
+      csvEscape(record.ts_utc),
+      csvEscape(record.ip),
+      csvEscape(record.user_agent)
+    ].join(',') + '\n';
+    fs.appendFile(csvFile, row, (e) => {
+      if (e) console.error('CSV append error:', e);
+    });
+  } catch (e) {
+    console.error('CSV write error:', e);
+  }
+}
 
 // --- Security ---
 app.disable('x-powered-by');
@@ -88,23 +123,9 @@ app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] })
 
 // --- Mailer ---
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // SSL
-  auth: { user: EMAIL_USER, pass: EMAIL_PASS },
-  logger: true,  // logs útiles
-  debug: true    // logs útiles
+  service: 'gmail',
+  auth: { user: EMAIL_USER, pass: EMAIL_PASS }
 });
-
-// Verifica credenciales SMTP al arrancar
-transporter.verify((err, success) => {
-  if (err) {
-    console.error('[MAIL VERIFY ERROR]', err);
-  } else {
-    console.log('[MAIL VERIFY] OK:', success);
-  }
-});
-
 
 async function sendNotification({ participantId, response, ts }) {
   if (!EMAIL_USER || !EMAIL_PASS || !RESEARCH_EMAIL) return;
@@ -198,6 +219,9 @@ app.post('/api/submit', async (req, res) => {
     return res.status(500).json({ ok: false, error: 'Error de servidor' });
   }
 
+  // CSV log
+  appendCsvRow(record);
+
   try {
     await sendNotification({ participantId: id, response, ts });
   } catch (e) {
@@ -235,6 +259,9 @@ app.get('/api/submit', async (req, res) => {
     return res.status(500).json({ ok: false, error: 'Error de servidor' });
   }
 
+  // CSV log
+  appendCsvRow(record);
+
   try {
     await sendNotification({ participantId: id, response, ts });
   } catch (e) {
@@ -243,6 +270,45 @@ app.get('/api/submit', async (req, res) => {
 
   const target = `/response.html?status=ok&response=${encodeURIComponent(response)}`;
   res.redirect(target);
+});
+
+// --- Admin basic auth + CSV export ---
+function requireBasicAuth(req, res, next) {
+  if (!ADMIN_USER || !ADMIN_PASS) {
+    return res.status(403).send('Admin no configurado');
+  }
+  const hdr = req.headers.authorization || '';
+  if (!hdr.startsWith('Basic ')) {
+    res.set('WWW-Authenticate', 'Basic realm="admin"');
+    return res.status(401).send('Auth requerida');
+  }
+  const token = hdr.slice(6);
+  const [u, p] = Buffer.from(token, 'base64').toString().split(':');
+  if (u === ADMIN_USER && p === ADMIN_PASS) return next();
+  return res.status(403).send('Forbidden');
+}
+
+app.get('/admin/export.csv', requireBasicAuth, (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="responses.csv"');
+    const rows = db.prepare('SELECT participant_id, response, ts_utc, ip, user_agent FROM responses ORDER BY ts_utc DESC').all();
+    res.write('participant_id,response,ts_utc,ip,user_agent\n');
+    for (const r of rows) {
+      const line = [
+        csvEscape(r.participant_id),
+        csvEscape(r.response),
+        csvEscape(r.ts_utc),
+        csvEscape(r.ip),
+        csvEscape(r.user_agent)
+      ].join(',') + '\n';
+      res.write(line);
+    }
+    res.end();
+  } catch (e) {
+    console.error('CSV export error:', e);
+    res.status(500).send('Error al generar CSV');
+  }
 });
 
 // CORS error handler
