@@ -24,14 +24,13 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  secret: 'actprion-research-2024-secure-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    maxAge: 8 * 60 * 60 * 1000, // 8 horas (más seguro para datos sensibles)
+    maxAge: 24 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // HTTPS automático en producción
-    sameSite: 'strict' // Protección adicional contra CSRF
+    secure: false
   }
 }));
 
