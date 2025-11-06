@@ -21,6 +21,8 @@ console.log('🚀 Servidor iniciado - Versión con debugging');
 dotenv.config();
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(session({
   secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
   resave: false,
@@ -19838,6 +19840,13 @@ app.use('/public', express.static('public'));
 app.post('/api/auth/verify', authLimiter, (req, res) => {
   console.log('POST /api/auth/verify recibido');
   console.log('Body:', req.body);
+
+  console.log('=== DEBUG AUTH ENDPOINT ===');
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('Content-Length:', req.headers['content-length']);
+  console.log('Body:', req.body);
+  console.log('Body type:', typeof req.body);
+  console.log('===============================');
   
   const { email, password, participantId } = req.body || {};
   
