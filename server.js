@@ -6271,7 +6271,7 @@ help: {
 
 emotional_support: {
   title: "💗 Laguntza emozionala eskuragarri",
-  description: "Galdetegia honetan sor daitezkeen emozioei buruz norbaitarekin hitz egin behar baduzu:",
+  description: "Galdetegi honetan sor daitezkeen emozioei buruz norbaitekin hitz egiteko beharra sentitzen baduzu, kontaktu hauek eskaintzen dizkizugu:",
   contacts: {
     izaro: "Izaro Kortazar doktorea:",
     izaro_contact: "Zuzeneko kontaktua",
@@ -6280,7 +6280,7 @@ emotional_support: {
     foundation: "Gaixotasun Prionikoen Espainiako Fundazioa:",
     foundation_contact: "+34 618 68 29 20"
   },
-  footer: "Gogoratu: Normala da gai hauei buruz pentsatzean emozioak sentitzea. Zure ongizatea da gure lehentasuna."
+  footer: "Gogoratu: Normala da gai hauei buruz pentsatzean emozio ezberdinak edo ezinegona sentitzea. Zure ongizatea da gure lehentasuna."
 },
 
   intro_pages: {
@@ -20658,4 +20658,5 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`[PrionStudy] listening on port ${PORT} env=${NODE_ENV}`);
-});
+});"// Emergency sync $(date)" 
+// Force Railway sync with debugging Thu Nov  6 09:14:17 RST 2025
