@@ -22,7 +22,7 @@ dotenv.config();
 const app = express();
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
   resave: false,
   saveUninitialized: false,
   cookie: { 
