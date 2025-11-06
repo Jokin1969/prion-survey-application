@@ -1,76 +1,116 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Estudio Priónico – Confirmación</title>
-<style>
-:root { color-scheme: light dark; }
-body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; display: grid; place-items: center; min-height: 100dvh; background: #f6f7f9; }
-.card { background: #fff; max-width: 680px; width: 100%; padding: 1.5rem; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
-p { line-height: 1.5; }
-.status { padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.9rem; display: inline-block; }
-.ok { background: #e8f5e9; color: #1b5e20; }
-.error { background: #ffebee; color: #b71c1c; }
-.muted { color: #666; font-size: 0.9rem; }
-.footer { margin-top: 1rem; font-size: 0.85rem; color: #666; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Confirmación de respuesta</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; line-height: 1.5; margin: 0; padding: 24px; background:#f7fafc; color:#1a202c; }
+    .card { max-width: 720px; margin: 0 auto; background:#fff; border-radius:16px; padding:24px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
+    h1 { font-size: 1.25rem; margin: 0 0 12px; }
+    p { margin: 0.5rem 0; }
+    .status { display:inline-block; font-weight:600; padding:2px 10px; border-radius:999px; font-size:0.9rem; vertical-align:middle; border:1px solid transparent; }
+    .ok { background:#e6fffa; color:#065f46; border-color:#99f6e4; }
+    .error { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+    .muted { color:#4a5568; font-size:0.95rem; }
+    .note { color:#6b7280; font-size:0.9rem; margin-top:8px; }
+  </style>
 </head>
 <body>
-<main class="card">
-<h1>Gracias por tu respuesta</h1>
-<p id="msg" class="muted">Procesando…</p>
-<div class="footer">Este sistema respeta tu decisión y protege tu confidencialidad.</div>
-</main>
+  <div class="card" role="status" aria-live="polite">
+    <h1>Gracias por tu respuesta</h1>
+    <p id="msg" class="muted">Procesando…</p>
+    <p id="note" class="note"></p>
+    <p class="muted" style="margin-top:12px">Este sistema respeta tu decisión y protege tu confidencialidad.</p>
+  </div>
 
+  <script>
+  (function () {
+    const params = new URLSearchParams(location.search);
+    const msg = document.getElementById('msg');
+    const note = document.getElementById('note');
+    const safe = (s) => (s || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 
-<script>
-(function() {
-const params = new URLSearchParams(location.search);
-const preStatus = params.get('status');
-const preResp = params.get('response');
+    function normalizeResponse(v) {
+      if (!v) return null;
+      const s = String(v).trim().toLowerCase();
+      const noAccents = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const key = noAccents.replace(/\s+/g, '_').replace(/-+/g, '_');
+      if (['acepto','si','sí','accept','accepted','acepta','accepto'].includes(key)) return 'acepto';
+      if (['necesito_mas_info','necesito_mas_informacion','mas_info','mas_informacion','mas','informacion','info','need_more_info','more_info','necesito_info'].includes(key)) return 'necesito_mas_info';
+      if (['rechazo','no','declino','declinar','reject','rejected','rechazar','rechaza'].includes(key)) return 'rechazo';
+      return null;
+    }
 
+    const labels = {
+      acepto: { es: '✅ Has indicado que ACEPTAS participar.', en: '✅ You indicated you ACCEPT to participate.' },
+      necesito_mas_info: { es: 'ℹ️ Has indicado que NECESITAS MÁS INFORMACIÓN.', en: 'ℹ️ You indicated you NEED MORE INFORMATION.' },
+      rechazo: { es: '❌ Has indicado que NO DESEAS PARTICIPAR.', en: '❌ You indicated you DO NOT WISH TO PARTICIPATE.' }
+    };
 
-const msg = document.getElementById('msg');
-const safe = (s) => (s||'').replace(/</g,'&lt;');
+    function setMessage(response, name, lang) {
+      const l = (lang === 'en') ? 'en' : 'es';
+      const base = labels[response]?.[l] || '';
+      const hello = name ? (l === 'en' ? `Gracias, ${safe(name)}. ` : `Gracias, ${safe(name)}. `)
+                         : (l === 'en' ? 'Gracias. ' : 'Gracias. ');
+      msg.innerHTML = `<span class="status ok">Recibido</span> ${hello}${base}`;
+    }
+    function setError(text) {
+      msg.innerHTML = `<span class="status error">Error</span> ${safe(text)}`;
+    }
 
+    // --- Caso A: venimos de GET /api/submit → ?status=ok&response=&id=
+    const preStatus = params.get('status');
+    const preResp = normalizeResponse(params.get('response')); // ⬅️ normaliza
+    const preId = params.get('id');
 
-if (preStatus === 'ok' && preResp) {
-// Reached via server redirect (GET flow)
-const labels = { acepto: '✅ Has indicado que ACEPTAS participar.', necesito_mas_info: 'ℹ️ Has indicado que NECESITAS MÁS INFORMACIÓN.', rechazo: '❌ Has indicado que NO DESEAS PARTICIPAR.' };
-msg.innerHTML = `<span class="status ok">Recibido</span> ${labels[preResp] || ''}`;
-return;
-}
+    if (preStatus === 'ok' && preResp) {
+      if (preId) {
+        fetch(`/api/whoami?id=${encodeURIComponent(preId)}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.ok) setMessage(preResp, data.name, data.lang);
+            else setMessage(preResp, null, 'es');
+          })
+          .catch(() => setMessage(preResp, null, 'es'));
+      } else {
+        setMessage(preResp, null, 'es');
+      }
+      return;
+    }
 
+    // --- Caso B: acceso directo con ?response=&id=  → POST /api/submit (con response normalizado)
+    const rawResponse = params.get('response');
+    const response = normalizeResponse(rawResponse);     // ⬅️ normaliza
+    const id = params.get('id');
+    const token = params.get('token');
 
-// Direct HTML open with ?response=&id= — use POST flow
-const response = params.get('response');
-const id = params.get('id');
-const token = params.get('token');
+    if (!response || !id) {
+      setError('Faltan parámetros en el enlace.');
+      return;
+    }
 
-
-if (!response || !id) {
-msg.innerHTML = '<span class="status error">Error</span> Falta información en el enlace.';
-return;
-}
-
-
-fetch('/api/submit', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ response, id, token })
-})
-.then(async (r) => {
-const data = await r.json().catch(() => ({}));
-if (!r.ok) throw new Error(data.error || 'Error');
-const labels = { acepto: '✅ Has indicado que ACEPTAS participar.', necesito_mas_info: 'ℹ️ Has indicado que NECESITAS MÁS INFORMACIÓN.', rechazo: '❌ Has indicado que NO DESEAS PARTICIPAR.' };
-msg.innerHTML = `<span class="status ok">Recibido</span> ${labels[response] || ''}`;
-})
-.catch((e) => {
-msg.innerHTML = `<span class="status error">Error</span> ${safe(e.message)}`;
-});
-})();
-</script>
+    fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ response, id, token })  // ⬅️ ya va canónico al servidor
+    })
+    .then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (r.ok) {
+        setMessage(response, data.name, data.lang);
+        if (data.duplicate) note.textContent = 'Nota: ya existía una respuesta previa para este identificador.';
+        return;
+      }
+      // Fallback por si algo falla (debería ser raro tras el cambio del servidor)
+      return fetch(`/api/whoami?id=${encodeURIComponent(id)}`)
+        .then(rr => rr.json())
+        .then(info => setMessage(response, info.ok ? info.name : null, info.ok ? info.lang : 'es'))
+        .catch(() => setMessage(response, null, 'es'));
+    })
+    .catch(() => setError('Error al registrar la respuesta.'));
+  })();
+  </script>
 </body>
 </html>
