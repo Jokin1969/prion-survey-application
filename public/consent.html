@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Consentimiento Informado</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f7fafc;color:#1a202c;margin:0;padding:24px}
+    .container{max-width:800px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.06)}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .muted{color:#4a5568}
+    .pages{min-height:360px}
+    .page{display:none}
+    .page.active{display:block}
+    .nav{display:flex;justify-content:space-between;margin-top:16px}
+    button{border:0;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:600}
+    .btn{background:#111827;color:#fff}
+    .btn.secondary{background:#e5e7eb;color:#111827}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    input[type="text"]{padding:8px;border:1px solid #cbd5e1;border-radius:8px;width:220px}
+    label{display:flex;align-items:center;gap:8px}
+    .ok{display:inline-block;background:#e6fffa;color:#065f46;border:1px solid #99f6e4;padding:2px 10px;border-radius:999px;font-size:.9rem}
+    .error{display:inline-block;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:2px 10px;border-radius:999px;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <div class="header">
+      <div>
+        <h1 style="margin:0">Consentimiento Informado</h1>
+        <p id="who" class="muted" style="margin:.25rem 0 0">Cargando participante…</p>
+      </div>
+      <div id="status"></div>
+    </div>
+
+    <div class="pages">
+      <div class="page active" id="p1">
+        <h2>Página 1</h2>
+        <p><strong>Participante:</strong> <span id="full"></span></p>
+        <p><strong>DNI:</strong> <span id="dni"></span></p>
+        <p style="margin-top:12px">
+          [Pega aquí el texto REAL del CI (Página 1). Puedes poner párrafos largos, listas, etc.]
+        </p>
+      </div>
+
+      <div class="page" id="p2">
+        <h2>Página 2</h2>
+        <p>[Pega aquí el texto REAL del CI (Página 2).]</p>
+
+        <hr style="margin:16px 0" />
+
+        <div>
+          <h3>Opciones de finalización</h3>
+          <div class="actions" style="margin-bottom:12px">
+            <button class="btn secondary" id="btnPrint" type="button">🖨️ Imprimir</button>
+            <button class="btn secondary" id="btnDownload" type="button">⬇️ Descargar PDF</button>
+          </div>
+
+          <div style="margin-top:8px">
+            <label><input type="checkbox" id="chkAccept" /> He leído y acepto los términos del consentimiento.</label>
+          </div>
+          <div style="margin-top:8px">
+            <label>Iniciales:
+              <input type="text" id="txtInitials" placeholder="Ej: F.Y." maxlength="8" />
+            </label>
+          </div>
+
+          <div class="actions" style="margin-top:12px">
+            <button class="btn" id="btnAccept" type="button">✅ Aceptar digitalmente</button>
+          </div>
+
+          <p id="msg" class="muted" style="margin-top:10px"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="btn secondary" id="prev" type="button">← Anterior</button>
+      <button class="btn" id="next" type="button">Siguiente →</button>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const params = new URLSearchParams(location.search);
+      const id = params.get('id');
+      const who = document.getElementById('who');
+      const full = document.getElementById('full');
+      const dni = document.getElementById('dni');
+      const status = document.getElementById('status');
+      const msg = document.getElementById('msg');
+
+      // Navegación SIEMPRE activa
+      const pages = Array.from(document.querySelectorAll('.page'));
+      let idx = 0;
+      function show(i){
+        idx = Math.max(0, Math.min(pages.length-1, i));
+        pages.forEach((p, k) => p.classList.toggle('active', k === idx));
+      }
+      document.getElementById('prev').onclick = () => show(idx-1);
+      document.getElementById('next').onclick = () => show(idx+1);
+
+      // Cargar datos (solo si hay id)
+      if (!id) {
+        who.textContent = 'Falta id en la URL (?id=...)';

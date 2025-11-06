@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CI – Vista previa (Página 2)</title>
+  <style>
+    :root{ --ink:#1a202c; --blue:#0f2e6a; --rule:#e5e7eb; --link:#3b82f6; }
+    html,body{margin:0;padding:0;background:#f7fafc;color:var(--ink)}
+    body{
+      font-family: Calibri, "Segoe UI", system-ui, Roboto, Arial, sans-serif;
+      font-size:14.6667px; line-height:1.45; padding:24px;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    .page{
+      max-width:800px; margin:0 auto; background:#fff; border-radius:16px;
+      padding:42px 48px 36px; box-shadow:0 10px 30px rgba(0,0,0,.06);
+    }
+    @media print{
+      @page { size: A4; margin: 18mm; }
+      body{ background:#fff; padding:0; }
+      .page{ width:auto; max-width:none; border-radius:0; padding:0; box-shadow:none; }
+      .actions{ display:none; }
+    }
+    .logos{display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:48px}
+    .logos img{height:44px; object-fit:contain}
+    .rule{border:0;border-top:2px solid var(--rule); margin:12px 0 18px}
+
+    .section-title{
+      color:var(--blue); font-weight:700; margin:14px 0 6px; font-size:16px;
+      letter-spacing:.01em; text-transform:uppercase;
+    }
+    p{margin:0 0 8px; text-align:justify}
+    ul{margin:6px 0 8px 20px; padding:0}
+    li{margin:3px 0}
+    a.mail{ color:var(--link); text-decoration:underline }
+    .consent-box{ margin:6px 0 }
+    .bold{ font-weight:700 }
+
+    .sign-row{ display:flex; gap:20px; align-items:flex-end; margin-top:16px }
+    .sign{ flex:1; text-align:left }
+    .sign img{ max-width:100%; max-height:70px; object-fit:contain; display:block }
+    .sign .label{ margin-top:6px; font-weight:700 }
+
+    .actions{ display:flex; justify-content:space-between; gap:8px; margin-top:16px }
+    .btn{display:inline-block; text-decoration:none; background:#111827; color:#fff;
+         padding:10px 14px; border-radius:12px; font-weight:600}
+    .btn.secondary{ background:#e5e7eb; color:#111827 }
+  </style>
+</head>
+<body>
+  <main class="page" role="main">
+
+    <!-- Logos con fallbacks y ocultado si falla -->
+    <div class="logos">
+      <!-- CIC bioGUNE -->
+      <img src="/assets/logo_cicbiogune.png" alt="CIC bioGUNE" onerror="this.style.display='none'">
+      <img src="/assets/Logo cicbiogune.png" alt="CIC bioGUNE" onerror="this.style.display='none'">
+      <img src="/assets/Logo cicbiogune.jpg" alt="CIC bioGUNE" onerror="this.style.display='none'">
+      <!-- Osakidetza -->
+      <img src="/assets/logo_osakidetza.png" alt="Osakidetza" onerror="this.style.display='none'" style="margin-left:auto">
+      <img src="/assets/Logo osakidetza.png" alt="Osakidetza" onerror="this.style.display='none'" style="margin-left:auto">
+      <img src="/assets/Logo osakidetza.jpg" alt="Osakidetza" onerror="this.style.display='none'" style="margin-left:auto">
+    </div>
+
+    <hr class="rule" />
+
+    <!-- CONFIDENCIALIDAD -->
+    <h2 class="section-title">CONFIDENCIALIDAD</h2>
+    <ul>
+      <li>Sus respuestas serán tratadas de manera estrictamente confidencial</li>
+      <li>Los datos se almacenarán de forma codificada, sin información que permita identificarle directamente</li>
+      <li>Solo la investigadora clínica responsable (Dra. Izaro Kortazar) tendrá acceso a sus datos identificativos, y únicamente el equipo de investigación tendrá acceso a sus datos codificados</li>
+      <li>Los resultados del estudio se publicarán de forma agregada, sin información que pueda identificarle</li>
+      <li>Sus datos serán manejados según la normativa de protección de datos vigente (RGPD)</li>
+      <li>La Dra. Izaro Kortazar actuará como responsable de la protección de datos del estudio</li>
+    </ul>
+
+    <hr class="rule" />
+
+    <!-- PARTICIPACIÓN VOLUNTARIA -->
+    <h2 class="section-title">PARTICIPACIÓN VOLUNTARIA</h2>
+    <ul>
+      <li>Su participación es completamente voluntaria</li>
+      <li>Puede decidir no participar sin que esto afecte a su atención médica</li>
+      <li>Puede retirarse del estudio en cualquier momento sin dar explicaciones</li>
+    </ul>
+
+    <hr class="rule" />
+
+    <!-- INFORMACIÓN DE CONTACTO -->
+    <h2 class="section-title">INFORMACIÓN DE CONTACTO</h2>
+    <p><strong>Para preguntas sobre el estudio y aclaraciones de dudas científicas o técnicas:</strong><br/>
+      Dr. Joaquín Castilla<br/>
+      Teléfono: +34 618 68 29 20 – Correo electrónico:
+      <a class="mail" href="mailto:jcastilla@cicbiogune.es">jcastilla@cicbiogune.es</a>
+    </p>
+    <p><strong>Para preguntas clínicas y sobre protección de datos:</strong><br/>
+      Dra. Izaro Kortazar<br/>
+      Correo electrónico:
+      <a class="mail" href="mailto:izaro.kortazarzubizarreta@osakidetza.eus">izaro.kortazarzubizarreta@osakidetza.eus</a>
+    </p>
+    <p><strong>Para preguntas sobre sus derechos como participante:</strong><br/>
+      Comité Ético de Investigación con medicamentos de Euskadi (CEIm-E)<br/>
+      Teléfono: +34 945 01 92 96 – Correo electrónico:
+      <a class="mail" href="mailto:ceic.eeaa@euskadi.eus">ceic.eeaa@euskadi.eus</a>
+    </p>
+
+    <hr class="rule" />
+
+    <!-- CONSENTIMIENTO -->
+    <h2 class="section-title">CONSENTIMIENTO</h2>
+    <p>
+      Yo, <em>[Nombre y apellidos del participante]</em>, con DNI <em>[Número de DNI]</em>, he leído y entendido la información sobre este estudio. He tenido la oportunidad de hacer preguntas y todas han sido respondidas satisfactoriamente.
+    </p>
+    <p class="consent-box">☐ Este estudio investiga actitudes o predisposiciones hacia futuros ensayos clínicos, no se trata de un tratamiento, ni proporciona acceso a un tratamiento</p>
+    <p class="consent-box">☐ Mi participación consiste en responder a un cuestionario</p>
+    <p class="consent-box">☐ Mi participación es voluntaria y puedo retirarme en cualquier momento</p>
+    <p class="consent-box">☐ Mis datos serán tratados confidencialmente</p>
+    <p class="bold" style="margin-top:8px">
+      Por ello, escribiendo mis iniciales <em>[INICIALES]</em> el día <em>[Fecha de hoy]</em>, doy fe de que acepto participar voluntariamente en este estudio.
+    </p>
+    <!-- Nota: el campo de INICIALES y la fecha se implementarán como control en server.js (PDF y aceptación digital) -->
+
+    <hr class="rule" />
+
+    <!-- FIRMAS -->
+    <h2 class="section-title">FIRMA DE LOS RESPONSABLES DEL PROYECTO</h2>
+    <div class="sign-row">
+      <div class="sign">
+        <img src="/assets/firma_joaquin.png" alt="Firma Joaquín" onerror="this.style.display='none'">
+        <img src="/assets/Joaquin's signature transparent.png" alt="Firma Joaquín" onerror="this.style.display='none'">
+        <div class="label">Dr. Joaquín Castilla</div>
+      </div>
+      <div class="sign">
+        <img src="/assets/firma_izaro.png" alt="Firma Izaro" onerror="this.style.display='none'">
+        <img src="/assets/Firma de Izaro Kortazar.png" alt="Firma Izaro" onerror="this.style.display='none'">
+        <div class="label">Dra. Izaro Kortazar</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a class="btn secondary" href="/ci-preview.html">← Anterior</a>
+      <a class="btn" href="javascript:window.print()">🖨️ Imprimir</a>
+    </div>
+
+  </main>
+</body>
+</html>

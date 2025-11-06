@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CI – Vista previa (Página 1)</title>
+  <style>
+    :root{
+      --ink:#1a202c;     /* texto base */
+      --blue:#0f2e6a;    /* azul oscuro títulos */
+      --rule:#e5e7eb;    /* línea separadora */
+    }
+    html,body{margin:0;padding:0;background:#f7fafc;color:var(--ink)}
+    body{
+      font-family: Calibri, "Segoe UI", system-ui, Roboto, Arial, sans-serif;
+      font-size:14.6667px;   /* ≈ 11 pt */
+      line-height:1.45;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      padding:24px;
+    }
+    .page{
+      max-width:800px; margin:0 auto; background:#fff; border-radius:16px;
+      padding:42px 48px 36px; box-shadow:0 10px 30px rgba(0,0,0,.06);
+    }
+    @media print{
+      @page { size: A4; margin: 18mm; }
+      body{ background:#fff; padding:0; }
+      .page{ width:auto; max-width:none; border-radius:0; padding:0; box-shadow:none; }
+      .title{ margin-top:20mm; }
+      .actions{ display:none; }
+    }
+
+    .logos{display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:48px}
+    .logos img{height:44px; object-fit:contain}
+    .title{ margin:72px 0 8px; text-align:center; font-weight:800; font-size:24px; letter-spacing:.02em; }
+    .subtitle{ margin:0 0 16px; text-align:center; font-size:13.5px; color:#374151; }
+    .rule{border:0;border-top:2px solid var(--rule); margin:16px 0 18px}
+    .section-title{ color:var(--blue); font-weight:700; margin:14px 0 6px; font-size:16px; }
+    p{margin:0 0 8px; text-align:justify}
+    ul{margin:6px 0 8px 20px; padding:0}
+    li{margin:3px 0}
+    .small-gap{margin-top:4px}
+    .actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px }
+    .btn{display:inline-block; text-decoration:none; background:#111827; color:#fff;
+         padding:10px 14px; border-radius:12px; font-weight:600}
+  </style>
+</head>
+<body>
+  <main class="page" role="main">
+
+    <!-- Logos (con varios nombres posibles y ocultando el que falle) -->
+    <div class="logos">
+      <!-- CIC bioGUNE -->
+      <img src="/assets/logo_cicbiogune.png" alt="CIC bioGUNE" onerror="this.style.display='none'">
+      <img src="/assets/Logo cicbiogune.png" alt="CIC bioGUNE" onerror="this.style.display='none'">
+      <img src="/assets/Logo cicbiogune.jpg" alt="CIC bioGUNE" onerror="this.style.display='none'">
+      <!-- Osakidetza -->
+      <img src="/assets/logo_osakidetza.png" alt="Osakidetza" onerror="this.style.display='none'" style="margin-left:auto">
+      <img src="/assets/Logo osakidetza.png" alt="Osakidetza" onerror="this.style.display='none'" style="margin-left:auto">
+      <img src="/assets/Logo osakidetza.jpg" alt="Osakidetza" onerror="this.style.display='none'" style="margin-left:auto">
+    </div>
+
+    <!-- Título -->
+    <h1 class="title">CONSENTIMIENTO INFORMADO</h1>
+    <p class="subtitle">
+      Evaluación de la disposición de individuos con riesgo genético de enfermedades priónicas
+      hacia la participación en futuros ensayos clínicos de terapias génicas
+    </p>
+
+    <hr class="rule" />
+
+    <!-- ¿POR QUÉ... -->
+    <h2 class="section-title">¿POR QUÉ SE REALIZA ESTE ESTUDIO?</h2>
+    <p>
+      Las enfermedades priónicas están entrando en una nueva era donde por primera vez existen tratamientos
+      experimentales en desarrollo, incluyendo terapias génicas que podrían administrarse antes de que aparezcan
+      los síntomas. Para diseñar estos futuros ensayos clínicos de manera exitosa y ética, necesitamos entender
+      las perspectivas, preocupaciones y factores que influirían en las decisiones de personas como usted acerca
+      de su posible participación futura en este tipo de ensayos clínicos con terapias experimentales.
+    </p>
+    <p>
+      Su participación en este estudio nos ayudará, tanto a nosotros como a otros investigadores, a preparar
+      mejor estos ensayos clínicos futuros, asegurando que sean diseñados de manera que respondan a las
+      necesidades y preocupaciones reales de las familias afectadas.
+    </p>
+
+    <hr class="rule" />
+
+    <!-- ¿EN QUÉ CONSISTE... -->
+    <h2 class="section-title">¿EN QUÉ CONSISTE MI PARTICIPACIÓN?</h2>
+    <p>Su participación consistirá en completar un cuestionario donde le preguntaremos sobre:</p>
+    <ul>
+      <li>Sus percepciones sobre terapias génicas experimentales para enfermedades priónicas</li>
+      <li>Factores que influirían en su decisión de participar o no en un futuro ensayo clínico</li>
+      <li>Sus preocupaciones principales sobre este tipo de tratamientos experimentales</li>
+      <li>Qué información necesitaría para tomar una decisión informada</li>
+      <li>Barreras prácticas o emocionales que podrían afectar a su participación</li>
+      <li>Sus expectativas y esperanzas respecto a estos desarrollos terapéuticos</li>
+    </ul>
+    <p class="small-gap"><strong>Tiempo estimado:</strong> Aproximadamente 20 minutos</p>
+    <p><strong>Formato:</strong> Podrá completar los cuestionarios desde cualquier dispositivo móvil u ordenador,
+      tomándose el tiempo que necesite y en múltiples sesiones si así lo prefiere. Si necesita ayuda o tiene dudas,
+      le proporcionaremos apoyo telefónico o a través de videollamadas.
+    </p>
+
+    <hr class="rule" />
+
+    <!-- RIESGOS Y MOLESTIAS -->
+    <h2 class="section-title">RIESGOS Y MOLESTIAS</h2>
+    <p>Los riesgos de participar son mínimos, pero pueden incluir:</p>
+    <ul>
+      <li>Incomodidad emocional al discutir temas relacionados con la enfermedad y decisiones médicas futuras</li>
+      <li>Fatiga por el tiempo dedicado a responder las preguntas</li>
+      <li>Preocupaciones sobre confidencialidad de información genética y familiar</li>
+    </ul>
+    <p>
+      Si experimenta malestar emocional durante la participación, puede pausar o suspender su participación en cualquier momento.
+      El estudio cuenta con el apoyo de la Fundación Española de Enfermedades Priónicas, y le proporcionaremos información sobre
+      recursos de apoyo emocional y psicológico si lo desea.
+    </p>
+
+    <hr class="rule" />
+
+    <!-- BENEFICIOS -->
+    <h2 class="section-title">BENEFICIOS</h2>
+    <p><strong>Para la investigación futura:</strong> Su participación contribuirá directamente a diseñar ensayos clínicos más
+      efectivos y éticamente apropiados para todas las personas afectadas por una enfermedad priónica.</p>
+    <p><strong>Para usted:</strong> No recibirá beneficios médicos directos por participar. Sin embargo, su participación le permitirá
+      reflexionar sobre aspectos importantes relacionados con futuras decisiones terapéuticas y estar mejor informado sobre los
+      desarrollos más recientes en este campo.
+    </p>
+
+    <hr class="rule" />
+
+    <div class="actions">
+      <a class="btn" href="/ci-preview-2.html">Siguiente →</a>
+    </div>
+  </main>
+</body>
+</html>
