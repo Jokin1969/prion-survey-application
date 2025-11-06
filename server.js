@@ -19032,6 +19032,16 @@ app.post('/admin/questionnaire/clear', (req, res) => {
 
 // ----- API: Guardar respuesta (modificada para manejar eliminación) -----
 app.post('/api/questionnaire/save', (req, res) => {
+
+  // 🔍 DEBUG TEMPORAL
+  console.log('=== DEBUG SAVE ENDPOINT ===');
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('Content-Length:', req.headers['content-length']);
+  console.log('Body:', req.body);
+  console.log('Body type:', typeof req.body);
+  console.log('=============================');
+
+
   try {
     const { participantId, questionId, answer, currentQuestion } = req.body;
     
