@@ -1,0 +1,6 @@
+data/data.db
+data/responses.csv
+data/responses_csv/
+data/audio/
+data/reports/
+data/mail_log.csv
