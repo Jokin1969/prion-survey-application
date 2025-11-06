@@ -19863,24 +19863,36 @@ app.post('/api/auth/verify', authLimiter, (req, res) => {
     return res.status(404).json({ success: false, error: 'participant_not_found' });
   }
   
-  // Verificar credenciales
-  const isValidCredentials = participant.email === email && participant.password === password;
+// Verificar credenciales
+console.log('🔍 VERIFICANDO CREDENCIALES:');
+console.log('Email recibido:', email);
+console.log('Email esperado:', participant.email);
+console.log('Password recibido:', password);
+console.log('Password esperado:', participant.password);
+console.log('¿Coinciden emails?', participant.email === email);
+console.log('¿Coinciden passwords?', participant.password === password);
+
+const isValidCredentials = participant.email === email && participant.password === password;
+console.log('¿Credenciales válidas?', isValidCredentials);
   
   if (!isValidCredentials) {
     return res.status(401).json({ success: false, error: 'invalid_credentials' });
   }
-  
-  // Crear sesión
-  req.session.authenticated = participantId;
-  req.session.authTime = Date.now();
-  
-  // Devolver éxito con URL de redirección
-  res.json({ 
-    success: true,
-    redirect: `/questionnaire/${participantId}`
-  });
-});
 
+  console.log('✅ CREANDO SESIÓN...');
+req.session.authenticated = participantId;
+req.session.authTime = Date.now();
+console.log('✅ SESIÓN CREADA:', req.session);
+
+console.log('✅ ENVIANDO RESPUESTA DE ÉXITO...');
+const response = { 
+  success: true,
+  redirect: `/questionnaire/${participantId}`
+};
+console.log('✅ RESPUESTA:', response);
+
+res.json(response);
+});
 
 // TEST ENDPOINT - AGREGAR ANTES DEL ENDPOINT DE AYUDA
 app.post('/api/test', (req, res) => {
