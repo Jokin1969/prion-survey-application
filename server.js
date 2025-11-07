@@ -916,7 +916,7 @@ context: [
     id: 'P10',
     title: 'Urgencia temporal: síntomas en 2-5 años',
     context: 'La proximidad real al inicio de los síntomas puede generar una percepción de urgencia que influye significativamente en las decisiones sobre los tratamientos experimentales. Esta pregunta nos ayuda a entender cómo la certeza temporal afecta a la disposición a participar y a la tolerancia al riesgo.',
-    question: 'Si tuviera datos médicos que aseguraran que sus síntomas van a aparecer en los próximos 2-5 años, ¿cómo cambiaría su disposición a participar en el ensayo clínico?',
+    question: 'Si tuviera datos médicos que sugirieran que es muy probable que sus síntomas van a aparecer en los próximos 2-5 años, ¿cómo cambiaría su disposición a participar en el ensayo clínico?',
     type: 'single',
     required: true,
     options: [
@@ -3593,7 +3593,7 @@ if (participantInfo && participantInfo.ok) {
       { id: 'P09_phase2', question: '¿Estaría dispuesto/a a considerar su participación en la SITUACIÓN 2 (fase intermedia)?' },
       { id: 'P09_phase3', question: '¿Estaría dispuesto/a a considerar su participación en la SITUACIÓN 3 (fase final)?' },
       { id: 'P09_preference', question: 'Si tuviera que elegir una única opción considerando su situación personal actual, ¿cuál sería su preferencia?' },
-      { id: 'P10', question: 'Si tuviera datos médicos que aseguraran que sus síntomas van a aparecer en los próximos 2-5 años, ¿cómo cambiaría su disposición a participar en el ensayo clínico?' },
+      { id: 'P10', question: 'Si tuviera datos médicos que sugirieran que es muy probable que sus síntomas van a aparecer en los próximos 2-5 años, ¿cómo cambiaría su disposición a participar en el ensayo clínico?' },
       { id: 'P11', question: 'Del listado que se le presenta, ¿qué información consideraría más importante a la hora de tomar una decisión sobre participar o no en el ensayo?' },
       { id: 'P12', question: 'Del listado que se le presenta, ¿cuál de los siguientes factores cree que le influiría más en su decisión de participar?' },
       { id: 'P13', question: '¿Cómo afectaría a su disposición a participar el hecho de que esta terapia probablemente no permita una segunda aplicación (re-tratamiento) en caso de conseguir una eficacia parcial?' },
@@ -5387,7 +5387,7 @@ P09_preference: {
 P10: {
       title: "Urgencia temporal: síntomas en 2-5 años",
       context: "La proximidad real al inicio de los síntomas puede generar una percepción de urgencia que influye significativamente en las decisiones sobre los tratamientos experimentales. Esta pregunta nos ayuda a entender cómo la certeza temporal afecta a la disposición a participar y a la tolerancia al riesgo.",
-      question: "Si tuviera datos médicos que aseguraran que sus síntomas van a aparecer en los próximos 2-5 años, ¿cómo cambiaría su disposición a participar en el ensayo clínico?",
+      question: "Si tuviera datos médicos que sugirieran que es muy probable que sus síntomas van a aparecer en los próximos 2-5 años, ¿cómo cambiaría su disposición a participar en el ensayo clínico?",
       options: {
         "1": "Buscaría participar lo antes posible, preferiblemente en fases tempranas",
         "2": "Aumentaría mi disposición a participar, pero seguiría siendo selectivo con la fase",
@@ -6024,7 +6024,7 @@ P09: {
 P10: {
   title: "Urgència temporal: símptomes en 2-5 anys",
   context: "La proximitat real a l'inici dels símptomes pot generar una percepció d'urgència que influeix significativament en les decisions sobre els tractaments experimentals. Aquesta pregunta ens ajuda a entendre com la certesa temporal afecta la disposició a participar i la tolerància al risc.",
-  question: "Si tingués dades mèdiques que asseguressin que els seus símptomes apareixeran en els propers 2-5 anys, com canviaria la seva disposició a participar en l'assaig clínic?",
+  question: "Si tingués dades mèdiques que suggerissin que és molt probable que els seus símptomes apareixeran en els propers 2-5 anys, com canviaria la seva disposició a participar en l'assaig clínic?",
   options: {
     "1": "Cercaria participar el més aviat possible, preferiblement en fases primerenques",
     "2": "Augmentaria la meva disposició a participar, però continuaria sent selectiu amb la fase",
@@ -6682,7 +6682,7 @@ readonly_mode: "Galdetegia irakurtzeko moduan soilik",
       context:
         "Sintomen hasieraren benetako hurbiltasunak premia edo larrialdi pertzepzio bat sor dezake, eta horrek eragin esanguratsua izan dezake tratamendu esperimentalei buruzko erabakietan. Hurrengo galderak denboraren estutasunak nola eragiten duen jakiten lagunduko digu parte hartzeko asmoan eta arriskuaren pertzepzioan ",
       question:
-        "Hurrengo 2-5 urteetan zure lehen sintomak agertuko direla ziurtatzen duten datu medikoak bazenituzke, nola aldatuko litzateke entsegu klinikoan parte hartzeko zure prestasuna?",
+        "Hurrengo 2-5 urteetan zure lehen sintomak agertuko direla oso litekeena dela iradokitzen duten datu medikoak bazenituzke, nola aldatuko litzateke entsegu klinikoan parte hartzeko zure prestasuna?",
       options: {
         1: "Ahalik eta lasterren parte hartzea bilatuko nuke, ahal izanez gero fase goiztiarrean",
         2: "Nire parte hartzeko prestasuna handituko litzateke, baina fasearen aukeraketan selektiboa izaten jarraituko nuke",
@@ -7414,7 +7414,7 @@ P09: {
 P10: {
   title: "Urxencia temporal: síntomas en 2-5 anos",
   context: "A proximidade real ao inicio dos síntomas pode xerar unha percepción de urxencia que inflúe significativamente nas decisións sobre os tratamentos experimentais. Esta pregunta axúdanos a entender como a certeza temporal afecta á disposición a participar e á tolerancia ao risco.",
-  question: "Se tivera datos médicos que asegurasen que os seus síntomas van aparecer nos próximos 2-5 anos, como cambiaría a súa disposición a participar no ensaio clínico?",
+  question: "Se tivera datos médicos que suxirisen que é moi probable que os seus síntomas van aparecer nos próximos 2-5 anos, como cambiaría a súa disposición a participar no ensaio clínico?",
   options: {
     "1": "Buscaría participar o antes posible, preferiblemente en fases temperás",
     "2": "Aumentaría a miña disposición a participar, pero seguiría sendo selectivo coa fase",
@@ -8707,7 +8707,7 @@ P09: {
 P10: {
       title: "Temporal urgency: symptoms in 2-5 years",
       context: "The real proximity to symptom onset can generate a perception of urgency that significantly influences decisions about experimental treatments. This question helps us understand how temporal certainty affects willingness to participate and risk tolerance.",
-      question: "If you had medical data that assured your symptoms would appear in the next 2-5 years, how would this change your willingness to participate in the clinical trial?",
+      question: "If you had medical data that suggested it was likely your symptoms would appear in the next 2-5 years, how would this change your willingness to participate in the clinical trial?",
       options: {
         "1": "I would seek to participate as soon as possible, preferably in early phases",
         "2": "It would increase my willingness to participate, but I would still be selective about the phase",
@@ -9279,7 +9279,7 @@ P08: {
 P10: {
       title: "Urgência temporal: sintomas em 2-5 anos",
       context: "A proximidade real ao início dos sintomas pode gerar uma perceção de urgência que influencia significativamente as decisões sobre tratamentos experimentais. Esta pergunta ajuda-nos a entender como a certeza temporal afeta a disposição para participar e a tolerância ao risco.",
-      question: "Se tivesse dados médicos que assegurassem que os seus sintomas vão aparecer nos próximos 2-5 anos, como mudaria a sua disposição para participar no ensaio clínico?",
+      question: "Se tivesse dados médicos que sugerissem que é muito provável que os seus sintomas vão aparecer nos próximos 2-5 anos, como mudaria a sua disposição para participar no ensaio clínico?",
       options: {
         "1": "Procuraria participar o mais cedo possível, preferencialmente em fases iniciais",
         "2": "Aumentaria a minha disposição para participar, mas continuaria a ser seletivo com a fase",
@@ -9845,7 +9845,7 @@ P08: {
 P10: {
       title: "Urgenza temporale: sintomi in 2-5 anni",
       context: "La reale prossimità all'inizio dei sintomi può generare una percezione di urgenza che influenza significativamente le decisioni sui trattamenti sperimentali. Questa domanda ci aiuta a capire come la certezza temporale influisca sulla disponibilità a partecipare e sulla tolleranza al rischio.",
-      question: "Se avesse dati medici che assicurassero che i suoi sintomi appariranno nei prossimi 2-5 anni, come cambierebbe la sua disponibilità a partecipare allo studio clinico?",
+      question: "Se avesse dati medici che suggerissero che è molto probabile che i suoi sintomi appariranno nei prossimi 2-5 anni, come cambierebbe la sua disponibilità a partecipare allo studio clinico?",
       options: {
         "1": "Cercherei di partecipare il prima possibile, preferibilmente nelle fasi iniziali",
         "2": "Aumenterebbe la mia disponibilità a partecipare, ma rimarrei selettivo sulla fase",
@@ -10425,7 +10425,7 @@ P08: {
 P10: {
       title: "Zeitliche Dringlichkeit: Symptome in 2-5 Jahren",
       context: "Die tatsächliche Nähe zum Symptombeginn kann ein Gefühl der Dringlichkeit erzeugen, das Entscheidungen über experimentelle Behandlungen erheblich beeinflusst. Diese Frage hilft uns zu verstehen, wie zeitliche Gewissheit die Teilnahmebereitschaft und Risikotoleranz beeinflusst.",
-      question: "Wenn Sie medizinische Daten hätten, die sicherstellen, dass Ihre Symptome in den nächsten 2-5 Jahren auftreten werden, wie würde sich Ihre Bereitschaft zur Teilnahme an der klinischen Studie ändern?",
+      question: "Wenn Sie medizinische Daten hätten, die nahelegen würden, dass es sehr wahrscheinlich ist, dass Ihre Symptome in den nächsten 2-5 Jahren auftreten werden, wie würde sich Ihre Bereitschaft zur Teilnahme an der klinischen Studie ändern?",
       options: {
         "1": "Ich würde so schnell wie möglich teilnehmen wollen, vorzugsweise in frühen Phasen",
         "2": "Es würde meine Teilnahmebereitschaft erhöhen, aber ich wäre weiterhin wählerisch bei der Phase",
@@ -11007,7 +11007,7 @@ P08: {
 P10: {
       title: "Urgence temporelle : symptômes dans 2-5 ans",
       context: "La proximité réelle du début des symptômes peut générer une perception d'urgence qui influence significativement les décisions concernant les traitements expérimentaux. Cette question nous aide à comprendre comment la certitude temporelle affecte la disposition à participer et la tolérance au risque.",
-      question: "Si vous aviez des données médicales qui assuraient que vos symptômes vont apparaître dans les 2-5 prochaines années, comment cela changerait-il votre disposition à participer à l'essai clinique?",
+      question: "Si vous aviez des données médicales qui suggéraient qu'il est très probable que vos symptômes vont apparaître dans les 2-5 prochaines années, comment cela changerait-il votre disposition à participer à l'essai clinique?",
       options: {
         "1": "Je chercherais à participer le plus tôt possible, de préférence dans les phases précoces",
         "2": "Cela augmenterait ma disposition à participer, mais je resterais sélectif sur la phase",
@@ -11577,7 +11577,7 @@ P08: {
 P10: {
       title: "Časová naliehavosť: príznaky za 2-5 rokov",
       context: "Skutočná blízkosť začiatku príznakov môže vyvolať pocit naliehavosti, ktorý významne ovplyvňuje rozhodnutia o experimentálnych liečbach. Táto otázka nám pomáha pochopiť, ako časová istota ovplyvňuje ochotu zúčastniť sa a toleranciu rizika.",
-      question: "Ak by ste mali lekárske údaje, ktoré by zaručovali, že vaše príznaky sa objavia v najbližších 2-5 rokoch, ako by sa zmenila vaša ochota zúčastniť sa klinickej štúdie?",
+      question: "Ak by ste mali lekárske údaje, ktoré by naznačovali, že je veľmi pravdepodobné, že vaše príznaky sa objavia v najbližších 2-5 rokoch, ako by sa zmenila vaša ochota zúčastniť sa klinickej štúdie?",
       options: {
         "1": "Snažil by som sa zúčastniť čo najskôr, najlepšie v raných fázach",
         "2": "Zvýšilo by to moju ochotu zúčastniť sa, ale naďalej by som bol selektívny ohľadom fázy",
@@ -12151,7 +12151,8 @@ P08: {
 P10: {
       title: "דחיפות זמנית: תסמינים בעוד 2-5 שנים",
       context: "הקרבה האמיתית לתחילת התסמינים יכולה ליצור תחושת דחיפות המשפיעה משמעותית על החלטות לגבי טיפולים ניסיוניים. השאלה הזו עוזרת לנו להבין איך ודאות זמנית משפיעה על הנכונות להשתתף ועל סבילות הסיכון.",
-      question: "אם היו לכם נתונים רפואיים שמבטיחים שהתסמינים שלכם יופיעו ב-2-5 השנים הקרובות, איך זה ישנה את הנכונות שלכם להשתתף במחקר הקליני?",
+      question: "אם היו לכם נתונים רפואיים שמצביעים על סבירות גבוהה לכך שהתסמינים שלכם יופיעו ב-2-5 השנים הקרובות, איך זה ישנה את הנכונות שלכם להשתתף במחקר הקליני?",
+
       options: {
         "1": "הייתי מחפש להשתתף מוקדם ככל האפשר, עדיף בשלבים מוקדמים",
         "2": "זה היה מגביר את הנכונות שלי להשתתף, אבל הייתי ממשיך להיות בררן לגבי השלב",
