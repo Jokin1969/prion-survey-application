@@ -2500,7 +2500,24 @@ function getAnswers(participantId) {
   // Devuelve objeto { [question_id]: { answer, ts_utc } }
   const rows = qaSelect.all(participantId);
   const map = {};
-  for (const r of rows) map[r.question_id] = { answer: r.answer, ts_utc: r.ts_utc };
+  for (const r of rows) {
+    let processedAnswer = r.answer;
+    
+    // Deserializar objetos JSON para preguntas de ranking
+    const rankingQuestions = ['P11', 'P20', 'P21', 'P22b'];
+    if (rankingQuestions.includes(r.question_id) && typeof r.answer === 'string') {
+      try {
+        const parsed = JSON.parse(r.answer);
+        if (typeof parsed === 'object' && parsed !== null) {
+          processedAnswer = parsed;
+        }
+      } catch (e) {
+        // Mantener como string si no es JSON válido
+      }
+    }
+    
+    map[r.question_id] = { answer: processedAnswer, ts_utc: r.ts_utc };
+  }
   return map;
 }
 
@@ -2519,7 +2536,7 @@ function saveAnswer(participantId, questionId, answer) {
   qaUpsert.run({
     participant_id: participantId,
     question_id: String(questionId),
-    answer: (answer == null ? '' : String(answer)),
+    answer: (answer == null ? '' : (typeof answer === 'object' ? JSON.stringify(answer) : String(answer))),
     ts_utc: new Date().toISOString()
   });
 }
@@ -19068,7 +19085,7 @@ app.post('/api/questionnaire/save', (req, res) => {
       qaUpsert.run({
         participant_id: participantId,
         question_id: String(questionId),
-        answer: (answer == null ? '' : String(answer)),
+        answer: (answer == null ? '' : (typeof answer === 'object' ? JSON.stringify(answer) : String(answer))),
         ts_utc: new Date().toISOString()
       });
     }
