@@ -21,18 +21,38 @@ console.log('🚀 Servidor iniciado - Versión con debugging');
 dotenv.config();
 const app = express();
 
+// Cargar variables de entorno antes de usarlas
+const NODE_ENV = process.env.NODE_ENV || 'production';
+const SESSION_SECRET = process.env.SESSION_SECRET;
+
 app.set('trust proxy', 1);
+if (!SESSION_SECRET) {
+  console.error('❌ ERROR: SESSION_SECRET no está configurado en las variables de entorno');
+  console.error('Por favor, crea un archivo .env basándote en .env.example');
+  process.exit(1);
+}
 
 app.use(session({
-  secret: 'actprion-research-2024-secure-key-change-in-production',
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { 
+  cookie: {
     maxAge: 24 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: false
+    secure: NODE_ENV === 'production' // Secure cookies en producción
   }
 }));
+
+// Middleware global para proteger endpoints de debug en producción
+app.use((req, res, next) => {
+  if (NODE_ENV !== 'development' && (req.path.includes('/debug') || req.path.includes('/admin/debug'))) {
+    return res.status(403).json({
+      error: 'Debug endpoints are only available in development mode',
+      message: 'Set NODE_ENV=development to access this endpoint'
+    });
+  }
+  next();
+});
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
@@ -134,7 +154,6 @@ if (!fs.existsSync(ASSETS_DIR)) fs.mkdirSync(ASSETS_DIR, { recursive: true });
 
 // ===== Config =====
 const PORT   = process.env.PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || 'production';
 
 const EMAIL_USER     = process.env.EMAIL_USER;
 const EMAIL_PASS     = process.env.EMAIL_PASS;
