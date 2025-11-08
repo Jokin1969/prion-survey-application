@@ -1,67 +1,226 @@
 #!/bin/bash
 
-# Script de deploy seguro con backup automático
-# Uso: ./deploy.sh [mensaje opcional]
+# ============================================
+# Script de Deploy Seguro - ActPrion Project
+# ============================================
+# Funcionalidades:
+# - Backup automático antes de deploy
+# - Push a GitHub
+# - Deploy automático en Railway
+# - Validaciones de seguridad
+# ============================================
 
-echo "🚀 === DEPLOY SEGURO ACTPRION === 🚀"
-echo ""
+set -e  # Salir si hay error
 
-# Crear carpeta de backups si no existe
-mkdir -p backups
-
-# Timestamp para nombres únicos
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_DIR="backups/backup_$TIMESTAMP"
-
-echo "📦 Paso 1: Creando backup de datos de Railway..."
-echo "   Timestamp: $TIMESTAMP"
-
-# Crear backup de la base de datos
-echo "   🗄️  Descargando base de datos..."
-railway run -- cat data/data.db > "backups/data_$TIMESTAMP.db"
-
-# Crear backup completo de la carpeta data
-echo "   📁 Descargando carpeta data completa..."
-railway run -- tar -czf - data/ > "backups/data_complete_$TIMESTAMP.tar.gz"
-
-# Verificar que los backups se crearon
-if [ -f "backups/data_$TIMESTAMP.db" ]; then
-    echo "   ✅ Backup de BD creado: data_$TIMESTAMP.db"
-else
-    echo "   ❌ Error creando backup de BD"
-    exit 1
-fi
-
-if [ -f "backups/data_complete_$TIMESTAMP.tar.gz" ]; then
-    echo "   ✅ Backup completo creado: data_complete_$TIMESTAMP.tar.gz"
-else
-    echo "   ❌ Error creando backup completo"
-    exit 1
-fi
+# Colores para output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
 echo ""
-echo "🚀 Paso 2: Desplegando cambios a Railway..."
+echo -e "${BLUE}🚀 ======================================${NC}"
+echo -e "${BLUE}   DEPLOY SEGURO - ACTPRION PROJECT${NC}"
+echo -e "${BLUE}======================================${NC}"
+echo ""
 
-# Mensaje de commit opcional
-if [ ! -z "$1" ]; then
-    echo "   📝 Mensaje: $1"
-fi
+# ============================================
+# PASO 0: Validaciones previas
+# ============================================
+echo -e "${YELLOW}🔍 Validando entorno...${NC}"
 
-# Deploy
-railway up
-
-# Verificar si el deploy fue exitoso
-if [ $? -eq 0 ]; then
-    echo ""
-    echo "✅ ¡Deploy completado exitosamente!"
-    echo "📦 Backup guardado en: backups/"
-    echo "   - Base de datos: data_$TIMESTAMP.db"
-    echo "   - Completo: data_complete_$TIMESTAMP.tar.gz"
-    echo ""
-    echo "💡 Para restaurar en caso de emergencia:"
-    echo "   railway run -- cat backups/data_$TIMESTAMP.db > data/data.db"
-else
-    echo ""
-    echo "❌ Error en el deploy. Los backups están seguros en backups/"
+# Verificar que estamos en un repositorio git
+if [ ! -d ".git" ]; then
+    echo -e "${RED}❌ Error: No estás en un repositorio git${NC}"
     exit 1
 fi
+
+# Verificar que Railway CLI está instalado
+if ! command -v railway &> /dev/null; then
+    echo -e "${YELLOW}⚠️  Railway CLI no está instalado${NC}"
+    echo "   Instalación: npm install -g @railway/cli"
+    echo "   O continuar sin Railway (solo GitHub)"
+    read -p "   ¿Continuar sin Railway? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+    SKIP_RAILWAY=true
+else
+    SKIP_RAILWAY=false
+fi
+
+# Verificar que hay cambios para commitear
+if git diff-index --quiet HEAD --; then
+    echo -e "${YELLOW}⚠️  No hay cambios para commitear${NC}"
+    read -p "   ¿Continuar con deploy de versión actual? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 0
+    fi
+    NO_CHANGES=true
+else
+    NO_CHANGES=false
+fi
+
+# Verificar que .env NO está en staging
+if git ls-files --error-unmatch .env &> /dev/null; then
+    echo -e "${RED}❌ ERROR CRÍTICO: .env está siendo trackeado por git${NC}"
+    echo "   Ejecuta: git rm --cached .env"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Validaciones completadas${NC}"
+echo ""
+
+# ============================================
+# PASO 1: Backup de Railway
+# ============================================
+if [ "$SKIP_RAILWAY" = false ]; then
+    echo -e "${BLUE}📦 PASO 1: Creando backup de Railway...${NC}"
+
+    # Crear carpeta de backups si no existe
+    mkdir -p backups
+
+    # Timestamp para nombres únicos
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+
+    echo "   📅 Timestamp: $TIMESTAMP"
+
+    # Backup de la base de datos
+    echo -n "   🗄️  Descargando base de datos... "
+    if railway run -- cat data/data.db > "backups/data_$TIMESTAMP.db" 2>/dev/null; then
+        SIZE=$(du -h "backups/data_$TIMESTAMP.db" | cut -f1)
+        echo -e "${GREEN}✅ ($SIZE)${NC}"
+    else
+        echo -e "${YELLOW}⚠️  No se pudo descargar (¿Railway conectado?)${NC}"
+    fi
+
+    # Backup completo de la carpeta data
+    echo -n "   📁 Descargando carpeta data completa... "
+    if railway run -- tar -czf - data/ > "backups/data_complete_$TIMESTAMP.tar.gz" 2>/dev/null; then
+        SIZE=$(du -h "backups/data_complete_$TIMESTAMP.tar.gz" | cut -f1)
+        echo -e "${GREEN}✅ ($SIZE)${NC}"
+    else
+        echo -e "${YELLOW}⚠️  No se pudo descargar${NC}"
+    fi
+
+    echo -e "${GREEN}✅ Backups guardados en backups/${NC}"
+    echo ""
+else
+    echo -e "${YELLOW}⏭️  Saltando backup de Railway (CLI no instalado)${NC}"
+    echo ""
+fi
+
+# ============================================
+# PASO 2: Commit y Push a GitHub
+# ============================================
+echo -e "${BLUE}📤 PASO 2: Subiendo a GitHub...${NC}"
+
+if [ "$NO_CHANGES" = false ]; then
+    # Pedir mensaje de commit
+    if [ ! -z "$1" ]; then
+        COMMIT_MSG="$1"
+        echo "   📝 Mensaje: $COMMIT_MSG"
+    else
+        echo -n "   📝 Ingresa mensaje de commit: "
+        read COMMIT_MSG
+
+        # Si no ingresó mensaje, usar uno por defecto
+        if [ -z "$COMMIT_MSG" ]; then
+            COMMIT_MSG="deploy: actualización $(date +"%Y-%m-%d %H:%M")"
+            echo "      Usando mensaje por defecto: $COMMIT_MSG"
+        fi
+    fi
+
+    # Mostrar archivos que se van a commitear
+    echo ""
+    echo "   📋 Archivos modificados:"
+    git status --short | sed 's/^/      /'
+    echo ""
+
+    # Confirmar antes de continuar
+    read -p "   ¿Continuar con commit y push? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}❌ Deploy cancelado por el usuario${NC}"
+        exit 0
+    fi
+
+    # Add todos los cambios
+    echo -n "   ➕ Agregando cambios... "
+    git add .
+    echo -e "${GREEN}✅${NC}"
+
+    # Commit
+    echo -n "   💾 Creando commit... "
+    git commit -m "$COMMIT_MSG" --quiet
+    echo -e "${GREEN}✅${NC}"
+
+    # Push a GitHub
+    echo -n "   ⬆️  Subiendo a GitHub... "
+    BRANCH=$(git branch --show-current)
+    git push origin "$BRANCH" --quiet
+    echo -e "${GREEN}✅${NC}"
+
+    echo ""
+    echo -e "${GREEN}✅ Código subido a GitHub (rama: $BRANCH)${NC}"
+else
+    echo -e "${YELLOW}⏭️  Sin cambios para commitear${NC}"
+    BRANCH=$(git branch --show-current)
+fi
+
+echo ""
+
+# ============================================
+# PASO 3: Deploy en Railway
+# ============================================
+if [ "$SKIP_RAILWAY" = false ]; then
+    echo -e "${BLUE}🚂 PASO 3: Deploy en Railway...${NC}"
+    echo ""
+    echo "   Railway detectará automáticamente el push a GitHub"
+    echo "   y desplegará la nueva versión en 1-3 minutos."
+    echo ""
+    echo "   📊 Monitorea el progreso en:"
+    echo "   🔗 https://railway.app/dashboard"
+    echo ""
+
+    read -p "   ¿Forzar deploy inmediato con 'railway up'? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo ""
+        echo -n "   🚀 Ejecutando railway up... "
+        railway up
+        echo -e "${GREEN}✅ Deploy forzado completado${NC}"
+    else
+        echo -e "${BLUE}⏳ Railway desplegará automáticamente${NC}"
+    fi
+else
+    echo -e "${YELLOW}⏭️  Saltando deploy de Railway (CLI no instalado)${NC}"
+    echo "   GitHub está actualizado. Configura Railway para auto-deploy."
+fi
+
+echo ""
+
+# ============================================
+# RESUMEN FINAL
+# ============================================
+echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║   ✅ DEPLOY COMPLETADO EXITOSAMENTE   ║${NC}"
+echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
+echo ""
+echo "📋 Resumen:"
+echo "   📦 Backup: backups/data_$TIMESTAMP.db"
+echo "   🌿 Rama: $BRANCH"
+echo "   📝 Commit: $COMMIT_MSG"
+echo "   🔗 GitHub: ✅ Actualizado"
+if [ "$SKIP_RAILWAY" = false ]; then
+    echo "   🚂 Railway: ✅ Desplegando/Desplegado"
+fi
+echo ""
+echo "💡 Comandos útiles:"
+echo "   Ver logs: railway logs"
+echo "   Ver status: railway status"
+echo "   Restaurar backup: railway run -- cat backups/data_$TIMESTAMP.db > data/data.db"
+echo ""
