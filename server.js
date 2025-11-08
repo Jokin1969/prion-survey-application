@@ -13,6 +13,7 @@ import PDFDocument from 'pdfkit';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import session from 'express-session';
+import connectSqlite3 from 'connect-sqlite3';
 import crypto from 'crypto';
 
 console.log('🚀 Servidor iniciado - Versión con debugging');
@@ -32,7 +33,16 @@ if (!SESSION_SECRET) {
   process.exit(1);
 }
 
+// Configurar SQLite para sesiones persistentes
+const SQLiteStore = connectSqlite3(session);
+
 app.use(session({
+  store: new SQLiteStore({
+    db: 'sessions.db',
+    dir: './data',
+    table: 'sessions',
+    ttl: 24 * 60 * 60 * 1000 // 24 horas
+  }),
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
