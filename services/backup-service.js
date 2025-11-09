@@ -325,3 +325,115 @@ export function checkDropboxConfig() {
       : 'Dropbox no configurado. Configura DROPBOX_ACCESS_TOKEN en las variables de entorno'
   };
 }
+
+/**
+ * IMPORTACIÓN: Descargar participants.csv desde Dropbox
+ * Descarga el archivo desde /ActPrion/Databases/participants.csv
+ *
+ * @returns {Object} Resultado de la descarga
+ */
+export async function downloadParticipantsFromDropbox() {
+  try {
+    if (!dbx) {
+      throw new Error('Dropbox no configurado. Falta DROPBOX_ACCESS_TOKEN');
+    }
+
+    const dropboxPath = '/ActPrion/Databases/participants.csv';
+
+    // Descargar archivo desde Dropbox
+    const response = await dbx.filesDownload({ path: dropboxPath });
+
+    if (!response || !response.result || !response.result.fileBinary) {
+      throw new Error('No se pudo descargar el archivo desde Dropbox');
+    }
+
+    // Guardar en /data/participantes.csv
+    const localPath = path.join(DATA_DIR, 'participantes.csv');
+    fs.writeFileSync(localPath, response.result.fileBinary);
+
+    const stats = fs.statSync(localPath);
+
+    return {
+      success: true,
+      localPath,
+      dropboxPath,
+      size: stats.size,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Error downloading participants from Dropbox:', error);
+
+    // Mensaje más específico si el archivo no existe
+    if (error.error && error.error.error_summary && error.error.error_summary.includes('not_found')) {
+      return {
+        success: false,
+        error: 'Archivo no encontrado en Dropbox. Asegúrate de subir participants.csv a /ActPrion/Databases/'
+      };
+    }
+
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * IMPORTACIÓN: Importar participantes desde Dropbox
+ * Descarga y valida el archivo participants.csv desde Dropbox
+ *
+ * @returns {Object} Resultado de la importación
+ */
+export async function importParticipantsFromDropbox() {
+  try {
+    // Descargar desde Dropbox
+    const downloadResult = await downloadParticipantsFromDropbox();
+
+    if (!downloadResult.success) {
+      return downloadResult;
+    }
+
+    // Validar formato del CSV
+    const csvContent = fs.readFileSync(downloadResult.localPath, 'utf8');
+    const lines = csvContent.split('\n').filter(line => line.trim());
+
+    if (lines.length < 2) {
+      return {
+        success: false,
+        error: 'El archivo CSV está vacío o no contiene datos'
+      };
+    }
+
+    // Validar headers esperados
+    const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/^"*|"*$/g, ''));
+    const requiredHeaders = ['id', 'name', 'email', 'lang'];
+    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+
+    if (missingHeaders.length > 0) {
+      return {
+        success: false,
+        error: `Faltan columnas requeridas en el CSV: ${missingHeaders.join(', ')}`
+      };
+    }
+
+    // Contar participantes (excluyendo header)
+    const participantCount = lines.length - 1;
+
+    return {
+      success: true,
+      message: 'Participantes importados exitosamente',
+      localPath: downloadResult.localPath,
+      dropboxPath: downloadResult.dropboxPath,
+      participantCount,
+      headers,
+      size: downloadResult.size,
+      timestamp: downloadResult.timestamp
+    };
+  } catch (error) {
+    console.error('Error importing participants:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
