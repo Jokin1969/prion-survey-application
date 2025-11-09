@@ -327,8 +327,8 @@ export function checkDropboxConfig() {
 }
 
 /**
- * IMPORTACIÓN: Descargar participants.csv desde Dropbox
- * Descarga el archivo desde /ActPrion/Databases/participants.csv
+ * IMPORTACIÓN: Descargar participantes.csv desde Dropbox
+ * Descarga el archivo desde /ActPrion/Databases/participantes.csv
  *
  * @returns {Object} Resultado de la descarga
  */
@@ -338,7 +338,7 @@ export async function downloadParticipantsFromDropbox() {
       throw new Error('Dropbox no configurado. Falta DROPBOX_ACCESS_TOKEN');
     }
 
-    const dropboxPath = '/ActPrion/Databases/participants.csv';
+    const dropboxPath = '/ActPrion/Databases/participantes.csv';
 
     // Descargar archivo desde Dropbox
     const response = await dbx.filesDownload({ path: dropboxPath });
@@ -367,7 +367,7 @@ export async function downloadParticipantsFromDropbox() {
     if (error.error && error.error.error_summary && error.error.error_summary.includes('not_found')) {
       return {
         success: false,
-        error: 'Archivo no encontrado en Dropbox. Asegúrate de subir participants.csv a /ActPrion/Databases/'
+        error: 'Archivo no encontrado en Dropbox. Asegúrate de subir participantes.csv a /ActPrion/Databases/'
       };
     }
 
@@ -380,7 +380,8 @@ export async function downloadParticipantsFromDropbox() {
 
 /**
  * IMPORTACIÓN: Importar participantes desde Dropbox
- * Descarga y valida el archivo participants.csv desde Dropbox
+ * Descarga y valida el archivo participantes.csv desde Dropbox
+ * El CSV puede tener cualquier número de campos, solo valida que existan los mínimos requeridos
  *
  * @returns {Object} Resultado de la importación
  */
@@ -404,10 +405,13 @@ export async function importParticipantsFromDropbox() {
       };
     }
 
-    // Validar headers esperados
-    const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/^"*|"*$/g, ''));
+    // Obtener todos los headers del CSV (preserva mayúsculas/minúsculas originales)
+    const headersRaw = lines[0].split(',').map(h => h.trim().replace(/^"*|"*$/g, ''));
+
+    // Validar que existan los campos mínimos requeridos (case-insensitive)
+    const headersLower = headersRaw.map(h => h.toLowerCase());
     const requiredHeaders = ['id', 'name', 'email', 'lang'];
-    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+    const missingHeaders = requiredHeaders.filter(h => !headersLower.includes(h));
 
     if (missingHeaders.length > 0) {
       return {
@@ -425,7 +429,8 @@ export async function importParticipantsFromDropbox() {
       localPath: downloadResult.localPath,
       dropboxPath: downloadResult.dropboxPath,
       participantCount,
-      headers,
+      totalFields: headersRaw.length,
+      fields: headersRaw, // Todos los campos del CSV
       size: downloadResult.size,
       timestamp: downloadResult.timestamp
     };

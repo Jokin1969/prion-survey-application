@@ -3239,7 +3239,7 @@ app.get('/admin/backup/list-dropbox', async (req, res) => {
 });
 
 // ===== IMPORTAR PARTICIPANTES DESDE DROPBOX =====
-// Importa participants.csv desde /ActPrion/Databases/ en Dropbox
+// Importa participantes.csv desde /ActPrion/Databases/ en Dropbox
 app.post('/admin/import-participants', async (req, res) => {
   try {
     const result = await backupService.importParticipantsFromDropbox();
@@ -3249,10 +3249,11 @@ app.post('/admin/import-participants', async (req, res) => {
         ok: true,
         message: result.message,
         participantCount: result.participantCount,
+        totalFields: result.totalFields,
+        fields: result.fields,
         dropboxPath: result.dropboxPath,
         localPath: result.localPath,
         size: result.size,
-        headers: result.headers,
         timestamp: result.timestamp
       });
     } else {
