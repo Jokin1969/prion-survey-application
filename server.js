@@ -2591,10 +2591,6 @@ app.get('/admin/debug/variables', (req, res) => {
 
 
 app.get('/admin/export/responses-csv', async (req, res) => {
-console.log('🔥 FUNCIÓN CSV EJECUTÁNDOSE');
-  console.log('='.repeat(50));
-  console.log('CSV FUNCTION CALLED - START');
-  console.log('='.repeat(50));
   try {
     // Obtener todas las respuestas
     const responses = db.prepare(`
@@ -2625,10 +2621,6 @@ console.log('🔥 FUNCIÓN CSV EJECUTÁNDOSE');
       };
     });
 
-
-    // console.log CSV ===');
-console.log('Participantes en DB:', Object.keys(responsesByParticipant));
-console.log('Total respuestas encontradas:', responses.length);
 
     // Lista de todas las preguntas en orden
     const allQuestions = [
@@ -3772,20 +3764,16 @@ app.get('/api/participants/response-counts', (req, res) => {
     }
     
     const header = lines[0].split(',').map(col => col.trim().replace(/\r/g, ''));
-    // console.log
     
     const participantIdIndex = header.findIndex(col => col.toLowerCase() === 'participant_id');
     const responseIndex = header.findIndex(col => col.toLowerCase() === 'response');
     
-    // console.log
     
     // Ver primeras 3 líneas de datos
     for (let i = 1; i < Math.min(4, lines.length); i++) {
       const line = lines[i].trim();
       if (line) {
         const columns = line.split(',').map(col => col.trim().replace(/"/g, ''));
-        // console.log(`Línea ${i}:`, columns); // DEBUG
-        console.log(`Respuesta:`, columns[responseIndex]); // DEBUG
       }
     }
     
@@ -3803,7 +3791,6 @@ app.get('/api/participants/response-counts', (req, res) => {
       }
     }
     
-    // console.log
     res.json({ counts });
     
   } catch (error) {
@@ -4315,8 +4302,6 @@ res.json({
 
 // Endpoint mejorado para audio sin multer - con manejo robusto de errores
 app.post('/api/questionnaire/save-audio-simple', (req, res) => {
-  console.log('=== ENDPOINT AUDIO SIMPLE ===');
-  
   // Variables para control de estado
   let chunks = [];
   let totalSize = 0;
@@ -4392,7 +4377,6 @@ app.post('/api/questionnaire/save-audio-simple', (req, res) => {
     try {
       const audioBuffer = Buffer.concat(chunks);
       
-      console.log('Audio recibido - participantId:', participantId, 'questionId:', questionId, 'size:', audioBuffer.length);
       
       // Validar que se recibieron datos
       if (audioBuffer.length === 0) {
@@ -4407,7 +4391,6 @@ app.post('/api/questionnaire/save-audio-simple', (req, res) => {
       // Crear directorio si no existe
       const audioDir = path.join(DATA_DIR, 'audio');
       if (!fs.existsSync(audioDir)) {
-        console.log('Creando directorio de audio:', audioDir);
         fs.mkdirSync(audioDir, { recursive: true });
       }
       
@@ -4421,7 +4404,6 @@ app.post('/api/questionnaire/save-audio-simple', (req, res) => {
       // Guardar archivo de forma segura
       try {
         fs.writeFileSync(filepath, audioBuffer, { mode: 0o644 });
-        console.log('Archivo guardado:', filepath);
       } catch (fsError) {
         console.error('Error escribiendo archivo:', fsError);
         return sendResponse(500, { ok: false, error: 'Error guardando archivo de audio' });
@@ -4446,7 +4428,6 @@ app.post('/api/questionnaire/save-audio-simple', (req, res) => {
           }),
           ts_utc: new Date().toISOString()
         });
-        console.log('Registro guardado en BD para:', filename);
       } catch (dbError) {
         console.error('Error guardando en BD:', dbError);
         // Intentar eliminar el archivo si falla la BD
@@ -4457,8 +4438,7 @@ app.post('/api/questionnaire/save-audio-simple', (req, res) => {
         }
         return sendResponse(500, { ok: false, error: 'Error guardando en base de datos' });
       }
-      
-      console.log('Audio guardado exitosamente:', filename);
+
       sendResponse(200, { 
         ok: true, 
         audioData: { 
@@ -4550,9 +4530,7 @@ app.get('/api/audio/:filename', (req, res) => {
     
     // Enviar el archivo
     readStream.pipe(res);
-    
-    console.log('Sirviendo archivo de audio:', filename, 'tamaño:', stats.size);
-    
+
   } catch (error) {
     console.error('Error sirviendo audio:', error);
     if (!res.headersSent) {
@@ -4792,7 +4770,6 @@ function closeContextDetails(clickedElement) {
     for (const selector of possibleContainers) {
       contextContainer = clickedElement.closest(selector);
       if (contextContainer) {
-        console.log('closeContextDetails: usando contenedor', selector);
         break;
       }
     }
@@ -4816,7 +4793,6 @@ function closeContextDetails(clickedElement) {
       }
     });
     
-    console.log('closeContextDetails: cerrados', allDetails.length - 1, 'desplegables');
     
   } catch (error) {
     console.error('Error en closeContextDetails:', error);
@@ -4831,7 +4807,6 @@ function changeLanguage(lang) {
       renderCurrentQuestion();
         // AÑADIR ESTO: Si estamos en intro_1, forzar re-render
   if (state.currentQuestion === 'intro_1') {
-    console.log('Re-renderizando intro_1 después de cambio de idioma');
     renderIntroPage('intro_1');
   }
     }
@@ -12383,44 +12358,33 @@ P26: {
 
 async function loadParticipantData() {
   try {
-    console.log('=== CARGANDO DATOS DEL PARTICIPANTE ===');
     const response = await fetch('/api/participant/' + state.participantId);
     
     if (response.ok) {
       const participantData = await response.json();
-      console.log('Datos recibidos del servidor:', participantData);
       state.participantData = participantData;
       
       if (participantData.lang) {
-        console.log('Idioma del CSV:', participantData.lang);
         state.currentLanguage = participantData.lang;
         
         // AÑADIR: Cambiar automáticamente la interfaz al idioma detectado
-        console.log('Cambiando interfaz al idioma:', participantData.lang);
         changeLanguage(participantData.lang);
         
       } else {
-        console.log('Sin idioma en CSV, usando español por defecto');
         state.currentLanguage = 'es';
       }
 
 if (participantData.gender) {
   state.gender = participantData.gender;
-  console.log('✅ Género cargado:', state.gender);
 } else if (participantData.genero) {
   state.gender = participantData.genero;
-  console.log('✅ Género cargado (campo genero):', state.gender);
 } else if (participantData.sexo) {
   state.gender = participantData.sexo;
-  console.log('✅ Género cargado (campo sexo):', state.gender);
 } else {
-  console.log('❌ Sin género en participantData. Campos disponibles:', Object.keys(participantData));
 }
 
 
-      console.log('Idioma establecido:', state.currentLanguage);
     } else {
-      console.log('Error cargando participante');
       state.currentLanguage = 'es';
     }
   } catch (error) {
@@ -12431,14 +12395,12 @@ if (participantData.gender) {
 
 async function init() {
   try {
-    console.log('Iniciando cuestionario para:', state.participantId);
     await Promise.all([
       loadQuestionnaireStructure(),
       loadQuestionnaireState(),
       loadParticipantData()  // AÑADIR ESTA LÍNEA
     ]);
 
-    console.log('Idioma final establecido:', state.currentLanguage);
     
     // Calcular dónde posicionarse después de cargar todo
     calculateStartPosition();
@@ -12452,35 +12414,25 @@ async function init() {
 
 async function detectAndSetLanguage() {
   try {
-    console.log('=== DETECTANDO IDIOMA ===');
     const response = await fetch('/api/participant/' + state.participantId);
-    console.log('Response status:', response.status);
     
     if (response.ok) {
       const participantData = await response.json();
-      console.log('Datos del participante:', participantData);
-      console.log('Idioma en CSV:', participantData.language);
       
       if (participantData.language && participantData.language !== 'es') {
-        console.log('Cambiando idioma automáticamente a:', participantData.language);
         state.currentLanguage = participantData.language;
         updateLanguageDisplay();
       } else {
-        console.log('Participante español, mantener idioma español');
       }
     } else {
-      console.log('Error en response:', response.status);
     }
   } catch (error) {
-    console.log('Error detectando idioma:', error);
   }
-  console.log('=== FIN DETECCIÓN IDIOMA ===');
 }
 
 
 
     async function loadQuestionnaireStructure() {
-      console.log('Cargando estructura...');
       const response = await fetch('/api/questionnaire/structure');
       
       if (!response.ok) {
@@ -12493,7 +12445,6 @@ async function detectAndSetLanguage() {
       }
       
       state.structure = data.structure;
-      console.log('Estructura cargada:', state.structure);
       buildQuestionList();
     }
 
@@ -12504,7 +12455,6 @@ async function detectAndSetLanguage() {
 
 
 async function loadQuestionnaireState() {
-      console.log('Cargando estado del participante...');
       const response = await fetch('/api/questionnaire/load/' + state.participantId);
       
       if (!response.ok) {
@@ -12522,27 +12472,19 @@ async function loadQuestionnaireState() {
 
 state.canEdit = data.canEdit !== false;
 
-      console.log('Estado cargado:');
-      console.log('- Pregunta actual:', state.currentQuestion);
-      console.log('- Completado:', state.isCompleted);
-      console.log('- Total respuestas:', Object.keys(state.answers).length);
-      console.log('- Puede editar:', state.canEdit);
       
       if (state.isCompleted && state.currentQuestion !== 'completion') {
         state.currentQuestion = 'completion';
-        console.log('Cuestionario ya completado, mostrando página final');
       }
       
       // Asegurarnos de que el nombre del participante se actualiza
       if (data.participant && data.participant.nombre) {
         state.participantName = data.participant.nombre;
-        console.log('- Nombre participante:', state.participantName);
       }
       
       // Guardar género del participante
       if (data.participant && data.participant.gender) {
         state.gender = data.participant.gender;
-        console.log('- Género participante:', state.gender);
       }
     }
 
@@ -12550,15 +12492,8 @@ state.canEdit = data.canEdit !== false;
 
 
  function calculateStartPosition() {
-      console.log('=== INICIO calculateStartPosition ===');
-      console.log('state.structure existe?', !!state.structure);
-      console.log('state.structure.questions existe?', !!state.structure && !!state.structure.questions);
-      console.log('Cantidad de preguntas:', state.structure && state.structure.questions ? state.structure.questions.length : 0);
-      console.log('Cantidad de respuestas:', Object.keys(state.answers).length);
-      console.log('state.isCompleted:', state.isCompleted);
       
       if (state.isCompleted) {
-        console.log('-> Cuestionario completado, ir a completion');
         state.currentQuestion = 'completion';
         return;
       }
@@ -12571,37 +12506,28 @@ state.canEdit = data.canEdit !== false;
       
       let lastAnsweredIndex = -1;
       
-      console.log('--- Revisando respuestas ---');
       for (let i = 0; i < state.structure.questions.length; i++) {
         const q = state.structure.questions[i];
         const answer = state.answers[q.id];
         
-        console.log('Pregunta ' + q.id + ':', answer);
         
         if (answer && answer.answer && String(answer.answer).trim() !== '') {
           lastAnsweredIndex = i;
-          console.log('  OK RESPONDIDA (indice ' + i + ')');
         } else {
-          console.log('  NO respondida');
         }
       }
       
-      console.log('--- Ultima pregunta respondida: indice', lastAnsweredIndex, '---');
       
 if (lastAnsweredIndex === -1) {
         // No hay respuestas, ir a intro_1
         state.currentQuestion = 'intro_1';
 
-        console.log('-> SIN RESPUESTAS, ir a:', state.currentQuestion);
       } else if (lastAnsweredIndex === state.structure.questions.length - 1) {
         state.currentQuestion = 'completion';
-        console.log('-> TODAS RESPONDIDAS, ir a completion');
       } else {
         state.currentQuestion = state.structure.questions[lastAnsweredIndex + 1].id;
-        console.log('-> IR A SIGUIENTE SIN RESPONDER:', state.currentQuestion);
       }
       
-      console.log('=== FIN - Posicion final:', state.currentQuestion, '===');
     }
 
 
@@ -12627,18 +12553,13 @@ if (lastAnsweredIndex === -1) {
       }
       
       state.allQuestions.push('completion');
-      console.log('Lista de preguntas construida:', state.allQuestions);
     }
 
 function shouldShowQuestion(question) {
-  console.log('=== EVALUANDO CONDICIÓN ===');
-  console.log('Pregunta:', question.id);
-  console.log('Idioma actual:', state.currentLanguage);
   
   // Nueva lógica para showForLanguages
   if (question.showForLanguages) {
     const shouldShow = question.showForLanguages.includes(state.currentLanguage);
-    console.log('¿Mostrar', question.id, '?', shouldShow, '(idiomas válidos:', question.showForLanguages, ')');
     if (!shouldShow) return false;
   }
 
@@ -12650,18 +12571,15 @@ function shouldShowQuestion(question) {
   
   // Lógica existente para showIf
   if (question.showIf) {
-    console.log('Evaluando showIf...');
     for (const [qId, expectedValue] of Object.entries(question.showIf)) {
       const answer = state.answers[qId]?.answer;
       
       if (Array.isArray(expectedValue)) {
         if (!expectedValue.includes(answer)) {
-          console.log('Pregunta', question.id, 'omitida por condición:', qId, '=', answer, '(esperado uno de:', expectedValue, ')');
           return false;
         }
       } else {
         if (answer !== expectedValue) {
-          console.log('Pregunta', question.id, 'omitida por condición:', qId, '=', answer, '(esperado:', expectedValue, ')');
           return false;
         }
       }
@@ -12670,14 +12588,10 @@ function shouldShowQuestion(question) {
   
   // Nueva lógica para showCondition (solo P0A y P0B)
   if (question.showCondition) {
-    console.log('Evaluando showCondition...');
-    console.log('Idioma actual del participante:', state.currentLanguage);
     const participantData = { language: state.currentLanguage || 'es' };
-    console.log('Datos para evaluar:', participantData);
     
     try {
       const result = question.showCondition(participantData);
-      console.log('¿Mostrar', question.id, '?', result);
       if (!result) return false;
     } catch (error) {
       console.error('Error evaluando showCondition:', error);
@@ -12689,7 +12603,6 @@ function shouldShowQuestion(question) {
 
 function renderCurrentQuestion() {
       const qId = state.currentQuestion;
-      console.log('Renderizando pregunta:', qId);
       
       if (qId.startsWith('intro_')) {
         renderIntroPage(qId);
@@ -14305,11 +14218,6 @@ html += '<div class="question-title">' + escapeHtml(t.title) +
     phasesHTML += '<span id="status_P09_' + phaseKey + '">' + statusText + '</span>';
 
 // AGREGAR ESTAS LÍNEAS DEBUG JUSTO DESPUÉS:
-console.log('=== CONSTRUYENDO STATUS ===');
-console.log('phaseKey:', phaseKey);
-console.log('statusText que se asigna:', statusText);
-console.log('Elemento ID: status_P09_' + phaseKey);
-console.log('============================');
 
     phasesHTML += '</div>';
     phasesHTML += '</summary>';
@@ -14412,8 +14320,6 @@ const lastBtn = !isRealLastQuestion
     getTranslation('navigation.last') + '</button>'
   : '';
 // DEBUG TEMPORAL - BORRAR DESPUÉS
-console.log('IDIOMA ACTIVO:', state.language || state.currentLanguage);
-console.log('TEST TRADUCCIÓN:', getTranslation('navigation.lastAnswered'));
 const lastAnsweredBtn = '<button class="btn btn-small" onclick="goToLastAnswered()">' + 
   getTranslation('navigation.lastAnswered') + 
   '</button>';
@@ -14531,7 +14437,6 @@ function renderPhaseQuestion(questionId) {
         const allPhasesAnswered = phase1Answered && phase2Answered && phase3Answered;
         
         // 🔍 DEBUG TEMPORAL - puedes eliminar después
-console.log('🔍 P09 Debug:', {
   phase1: phase1Answered,
   phase2: phase2Answered,
   phase3: phase3Answered,
@@ -14578,33 +14483,15 @@ const lastAnsweredBtn = '<button class="btn btn-small" onclick="goToLastAnswered
 
 
 // ✅ AGREGAR DEBUG TEMPORAL:
-// console.log P08 NOTAS ===');
-console.log('questionId:', questionId);
-console.log('question.contextNote exists:', !!question.contextNote);
-console.log('question.contextWarning exists:', !!question.contextWarning);
-console.log('translatedQuestion exists:', !!translatedQuestion);
 if (translatedQuestion) {
-  console.log('translatedQuestion.contextNote exists:', !!translatedQuestion.contextNote);
-  console.log('translatedQuestion.contextWarning exists:', !!translatedQuestion.contextWarning);
 }
-console.log('=======================');
 
 
 
 
 // ✅ AGREGAR EXACTAMENTE ESTAS LÍNEAS DESPUÉS:
-// console.log HTML P08 ===');
-console.log('Contiene NOTA I?', content.innerHTML.includes('NOTA I'));
-console.log('Contiene CONSIDERACIONES?', content.innerHTML.includes('CONSIDERACIONES IMPORTANTES'));
-console.log('Longitud HTML:', content.innerHTML.length);
-console.log('======================');
 
 // DEBUGGING TEMPORAL - BORRA DESPUÉS
-// console.log PREGUNTA ===');
-console.log('Question ID:', questionId);
-console.log('noteAfterOptions existe?:', !!question.noteAfterOptions);
-console.log('noteAfterOptions contenido:', question.noteAfterOptions);
-console.log('HTML generado contiene nota?:', content.innerHTML.includes('NOTA IMPORTANTE'));
 
 
 
@@ -14613,7 +14500,6 @@ console.log('HTML generado contiene nota?:', content.innerHTML.includes('NOTA IM
 
 // Función para limpiar respuestas de preguntas que ya no deben mostrarse
 function cleanupConditionalAnswers(changedQuestionId) {
-  console.log('🧹 Limpiando respuestas condicionadas después de cambiar', changedQuestionId);
   
   // Definir qué preguntas dependen de cuáles (mapa de dependencias)
 const dependencies = {
@@ -14634,8 +14520,6 @@ const dependencies = {
         
         // Si NO debería mostrarse pero tiene respuesta guardada, limpiarla
         if (!shouldShow && state.answers[dependentQuestionId]) {
-          console.log('🗑️ Eliminando respuesta de', dependentQuestionId, 'porque ya no aplica');
-          console.log('🗑️ Respuesta anterior era:', state.answers[dependentQuestionId]);
           
           // Limpiar del estado local
           delete state.answers[dependentQuestionId];
@@ -14645,7 +14529,6 @@ const dependencies = {
           saveAnswer(dependentQuestionId, []);             // Eliminar array vacío  
           saveAnswer(dependentQuestionId, undefined);       // Eliminar undefined
           
-          console.log('✅ Estado limpiado para', dependentQuestionId);
         }
       }
     });
@@ -14662,21 +14545,17 @@ function handlePhaseRadioChange(event) {
   if (questionId.startsWith('P09_phase')) {
     // Memorizar posición exacta del cursor
     const scrollPos = window.pageYOffset;
-    console.log('🔥 Memorizando posición:', scrollPos);
     
     // Timeout más largo para asegurar que el estado se guarde
     setTimeout(() => {
-      console.log('🔥 Ejecutando renderCurrentQuestion...');
       renderCurrentQuestion();
       
       // Timeout más largo para el scroll de vuelta
       setTimeout(() => {
-        console.log('🔥 Restaurando posición a:', scrollPos);
         
         // Scroll más robusto con requestAnimationFrame
         requestAnimationFrame(() => {
           window.scrollTo(0, scrollPos);
-          console.log('🔥 Scroll ejecutado, posición actual:', window.pageYOffset);
         });
         
       }, 200); // Aumentado de 10ms a 200ms
@@ -14960,11 +14839,8 @@ if (pageId === 'intro_3') {
     function renderQuestion(questionId) {
          const question = state.structure.questions?.find(q => q.id === questionId);
 
-console.log('>>> RENDERIZANDO:', questionId, 'TIPO:', question?.type, 'IDIOMA:', state.language);
 
 // DEBUG TEMPORAL - BORRAR DESPUÉS
-console.log('IDIOMA ACTIVO:', state.language);
-console.log('TEST TRADUCCIÓN lastAnswered:', getTranslation('navigation.lastAnswered'));
 
 
       if (!question) {
@@ -14979,26 +14855,18 @@ console.log('TEST TRADUCCIÓN lastAnswered:', getTranslation('navigation.lastAns
 
 
   // DEBUG TEMPORAL - BORRAR DESPUÉS
-// console.log TRADUCCIONES ===');
-console.log('questionId:', questionId);
-console.log('state.language:', state.language);
-console.log('translatedQuestion:', translatedQuestion);
-console.log('questionTitle:', questionTitle);
-console.log('==============================');
 
       if (!shouldShowQuestion(question)) {
         nextQuestion();
         return;
       }
 
-  console.log('*** shouldShowQuestion devolvió TRUE, continuando render...');
 
 
 
       let optionsHTML = '';
       const savedAnswer = state.answers[questionId]?.answer;
       
-      console.log('Renderizando pregunta', questionId, 'con respuesta guardada:', savedAnswer);
 
 if (question.type === 'single') {
         optionsHTML = '<div class="options-container">';
@@ -15013,21 +14881,13 @@ if (question.type === 'single') {
 
 
     // AGREGAR ESTAS LÍNEAS DEBUG:
-// console.log:', opt.value);
-console.log('  Original:', opt.label);
-console.log('  Traducida:', optionLabel);
-console.log('  translatedOptions:', translatedOptions);
 
 
 // DEBUG TEMPORAL - GÉNERO
-// console.log:');
-console.log('  state.gender:', state.gender);
-console.log('  optionLabel ANTES:', optionLabel);
           
 // Personalizar según género
 let label = personalizarTexto(optionLabel);
 
-console.log('  label DESPUÉS:', label);  // ← ESTA LÍNEA FALTA
           
           optionsHTML += 
             '<label class="option-label ' + selected + '">' +
@@ -15066,15 +14926,9 @@ if (selectedCount > 0) {
         }
 
 
-  // console.log('=== P07 INICIO ===');
-  console.log('questionId:', questionId);
-  console.log('current language:', state.language);
-  console.log('translatedQuestion exists:', !!translatedQuestion);
 
   const translatedOptions = translatedQuestion?.options;
 
-  console.log('translatedOptions:', translatedOptions);
-  console.log('========================');
 
         question.options.forEach(opt => {
           const isChecked = savedAnswers.includes(opt.value);
@@ -15082,13 +14936,9 @@ if (selectedCount > 0) {
           const checked = isChecked ? 'checked' : '';
           const disabled = !state.canEdit ? 'disabled' : '';
 
-    // console.log('--- Opción:', opt.value);
-    // console.log('    original:', opt.label);
 
     const optionLabel = translatedOptions?.[opt.value] || opt.label;
 
-    // console.log('    traducida:', optionLabel);
-    console.log('    ¿mismo texto?', opt.label === optionLabel);
 
           optionsHTML +=
             '<label class="option-label ' + selected + '">' +
@@ -15147,7 +14997,6 @@ if (questionId === 'P26') {
     const savedRanking = state.answers[questionId]?.answer || {};
     const currentRank = savedRanking[opt.value] || '';
     
-    console.log('Debug ranking - questionId:', questionId, 'savedRanking:', savedRanking, 'opt.value:', opt.value, 'currentRank:', currentRank);
 
     // Layout mobile-friendly: Texto arriba, botones abajo
     optionsHTML += '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;background:#fff;">';
@@ -15267,7 +15116,6 @@ if (questionId === 'P26') {
 optionsHTML += '</select></div>';
 
 } else if (question.type === 'phases') {
-  console.log('Renderizando pregunta tipo phases:', questionId);
   
   let phasesHTML = '';
   
@@ -15423,19 +15271,12 @@ const content = document.getElementById('questionContent');
 
         
 // DEBUG TEMPORAL - BORRAR DESPUÉS
-// console.log FUNCIÓN ===');
-console.log('typeof getTranslation:', typeof getTranslation);
-console.log('state.language:', state.language);
-console.log('state.currentLanguage:', state.currentLanguage);
 try {
-  console.log('Test getTranslation:', getTranslation('navigation.first'));
 } catch (e) {
   console.error('Error getTranslation:', e);
 }
-console.log('========================');
 
 // TEST: Ver si getTranslation funciona aquí
-console.log('TEST getTranslation en línea 9900:', getTranslation('navigation.first'));
 const lastAnsweredBtn = '<button class="btn btn-small" onclick="goToLastAnswered()">' + getTranslation('navigation.lastAnswered') + '</button>';
         
 content.innerHTML = 
@@ -15498,18 +15339,8 @@ return '<div style="background:#fdf2f8;border-left:4px solid #ec4899;padding:16p
 
 
 // ✅ AGREGAR EXACTAMENTE ESTAS LÍNEAS DESPUÉS:
-console.log('=== HTML FINAL GENERADO ===');
-console.log('Contiene contextNote?', content.innerHTML.includes('NOTA I'));
-console.log('Contiene contextWarning?', content.innerHTML.includes('CONSIDERACIONES IMPORTANTES'));
-console.log('HTML length:', content.innerHTML.length);
-console.log('================================');     
 
         // AGREGAR AQUÍ LOS LOGS:
-// console.log PREGUNTA ===');
-console.log('Question ID:', questionId);
-console.log('noteAfterOptions existe?:', !!question.noteAfterOptions);
-console.log('noteAfterOptions contenido:', question.noteAfterOptions);
-console.log('HTML generado contiene nota?:', content.innerHTML.includes('NOTA IMPORTANTE'));
 
 
         
@@ -15580,17 +15411,10 @@ function getReady() {
 
 
 function getTratamiento() {
-  // Debug temporal - puedes eliminar estos console.log después
-  // console.log('=== getTratamiento ===');
-  console.log('state.gender:', state.gender);
-  console.log('state.language:', state.language);
-  console.log('typeof state.gender:', typeof state.gender);
   
   const currentLang = state.language || 'es';  // Usar solo state.language
   const g = (state.gender || '').toLowerCase();
   
-  console.log('currentLang final:', currentLang);
-  console.log('g final:', g);
   
   // Español (por defecto)
   if (currentLang === 'es') {
@@ -15615,22 +15439,13 @@ function getTratamiento() {
   
   // Valenciano
 if (currentLang === 'va') {
-  console.log('>>> ENTRANDO EN VALENCIANO <<<');
-  console.log('Comprobando condiciones masculino:');
-  console.log('g === "m"?', g === 'm');
-  console.log('g === "masculino"?', g === 'masculino');
-  console.log('g === "male"?', g === 'male');
-  console.log('g === "hombre"?', g === 'hombre');
   
   if (g === 'f' || g === 'femenino' || g === 'female' || g === 'mujer') {
-    console.log('>>> RETORNANDO: Benvinguda');
     return 'Benvinguda';
   }
   if (g === 'm' || g === 'masculino' || g === 'male' || g === 'hombre') {
-    console.log('>>> RETORNANDO: Benvingut');
     return 'Benvingut';
   }
-  console.log('>>> RETORNANDO: Benvingut/da (genérico)');
   return 'Benvingut/da';
 }
 
@@ -15809,7 +15624,6 @@ function handleRadioChange(event) {
   const questionId = element.name;
   const value = element.value;
   
-  console.log('🎯 Radio cambiado - questionId:', questionId, 'value:', value);
   
   // Verificar que tenemos datos válidos
   if (!questionId || !value) {
@@ -15836,7 +15650,6 @@ if (questionId.startsWith('P09_phase')) {
 }
   
   // 🆕 NUEVO: Limpiar respuestas condicionadas
-  console.log('🧹 Llamando a cleanupConditionalAnswers con:', questionId);
   if (typeof cleanupConditionalAnswers === 'function') {
     cleanupConditionalAnswers(questionId);
   } else {
@@ -15851,7 +15664,6 @@ if (questionId.startsWith('P09_phase')) {
   });
   
 if (affectedQuestions.length > 0 || questionId === 'P06' || questionId === 'P22a' || questionId === 'P01' || questionId.startsWith('P09_')) {
-    console.log('🔄 Re-evaluando preguntas condicionales después de responder', questionId);
     setTimeout(() => {
       if (questionId === 'P06') {
         rerenderPreservingScroll(() => {
@@ -15903,7 +15715,6 @@ function smartRerenderForP09(fn, clickedQuestionId) {
   const phase3After = state.answers['P09_phase3'] ? state.answers['P09_phase3'].answer : null;
   const isEnabledAfter = phase1After && phase2After && phase3After;
   
-  console.log('P09 Smart Rerender:', {
     before: wasEnabledBefore,
     after: isEnabledAfter,
     stateChanged: wasEnabledBefore !== isEnabledAfter,
@@ -15914,14 +15725,12 @@ function smartRerenderForP09(fn, clickedQuestionId) {
   requestAnimationFrame(() => {
     if (wasEnabledBefore === isEnabledAfter) {
       // Estado no cambió, restaurar posición exacta
-      console.log('Manteniendo posición original:', originalScrollY);
       window.scrollTo({
         top: originalScrollY,
         behavior: 'auto'
       });
     } else if (!wasEnabledBefore && isEnabledAfter) {
       // Se habilitó la pregunta final - feedback sutil
-      console.log('🎉 Pregunta final habilitada - posición con feedback visual');
       window.scrollTo({
         top: Math.max(0, originalScrollY - 30), // Sube solo 30px para feedback
         behavior: 'smooth'
@@ -15953,7 +15762,6 @@ function smartRerenderForP09(fn, clickedQuestionId) {
   const phase3After = state.answers['P09_phase3'] ? state.answers['P09_phase3'].answer : null;
   const isEnabledAfter = phase1After && phase2After && phase3After;
   
-  console.log('P09 Smart Rerender:', {
     before: wasEnabledBefore,
     after: isEnabledAfter,
     stateChanged: wasEnabledBefore !== isEnabledAfter
@@ -15971,7 +15779,6 @@ function smartRerenderForP09(fn, clickedQuestionId) {
     }, 50);
   } else if (!wasEnabledBefore && isEnabledAfter) {
     // Se acaba de habilitar la pregunta final - mostrar mensaje pero NO hacer scroll
-    console.log('🎉 Pregunta final habilitada - mantener posición actual');
     setTimeout(() => {
       // Hacer scroll ligeramente hacia arriba para que se vea que algo cambió, pero sin ir hasta abajo
       const currentScroll = window.scrollY;
@@ -16034,11 +15841,9 @@ function handleCheckboxChange(questionId) {
   state.answers[questionId].answer = answer;
   state.answers[questionId].timestamp = new Date().toISOString();
   
-  console.log('Respuesta múltiple guardada:', questionId, '=', answer);
   saveAnswer(questionId, answer);
   
   // 🆕 NUEVO: Limpiar respuestas condicionadas también para checkboxes
-  console.log('🧹 Llamando a cleanupConditionalAnswers desde checkbox con:', questionId);
   if (typeof cleanupConditionalAnswers === 'function') {
     cleanupConditionalAnswers(questionId);
   }
@@ -16056,7 +15861,6 @@ function handleCheckboxChange(questionId) {
   });
   
   if (affectedQuestions.length > 0 || questionId === 'P06' || questionId === 'P22a' || questionId === 'P01') {
-    console.log('🔄 Re-evaluando preguntas condicionales después de responder checkbox', questionId);
     setTimeout(() => {
       renderCurrentQuestion();
       updateProgress();
@@ -16065,7 +15869,6 @@ function handleCheckboxChange(questionId) {
   
 // LÓGICA ESPECIAL PARA P23
 if (questionId === 'P23') {
-  console.log('P23 detectado en handleCheckboxChange');
   
   setTimeout(function() {
     var checkboxes = document.querySelectorAll('input[name="P23"]');
@@ -16075,11 +15878,9 @@ if (questionId === 'P23') {
     var noNeedChecked = noNeedOption && noNeedOption.checked;
     var anyOtherChecked = Array.from(otherOptions).some(function(opt) { return opt.checked; });
     
-    console.log('Estado P23:', { noNeedChecked, anyOtherChecked });
     
     if (noNeedChecked) {
       // Si "no_necesito" está marcado, desmarcar y deshabilitar otras
-      console.log('Deshabilitando otras opciones');
       otherOptions.forEach(function(opt) {
         if (opt.checked) opt.checked = false;
         opt.disabled = true;
@@ -16092,13 +15893,11 @@ if (questionId === 'P23') {
       saveAnswer(questionId, newAnswer);
     } else if (anyOtherChecked) {
       // Si hay otras opciones marcadas, deshabilitar "no_necesito"
-      console.log('Deshabilitando no_necesito');
       noNeedOption.disabled = true;
       noNeedOption.parentElement.style.opacity = '0.5';
       noNeedOption.parentElement.style.pointerEvents = 'none';
     } else {
       // Si no hay nada marcado, rehabilitar todo
-      console.log('Rehabilitando todas las opciones');
       checkboxes.forEach(function(opt) {
         opt.disabled = false;
         opt.parentElement.style.opacity = '1';
@@ -16124,7 +15923,6 @@ function renderCompletionPage() {
   // Calcular pendientes matemáticamente
   const pendingQuestions = totalQuestions - answeredQuestions;
   
-  console.log('📊 Página completado:', {
     total: totalQuestions,
     answered: answeredQuestions, 
     pending: pendingQuestions
@@ -16188,11 +15986,9 @@ function editQuestionnaire() {
                       (Array.isArray(answer) && answer.length === 0);
     
     if (isDeleting) {
-      console.log('🗑️ ELIMINANDO respuesta para', questionId, '- valor:', answer);
       // Limpiar del estado local
       delete state.answers[questionId];
     } else {
-      console.log('💾 GUARDANDO respuesta para', questionId, '=', answer);
       // Guardar en estado local
       state.answers[questionId] = { answer: answer };
     }
@@ -16212,7 +16008,6 @@ function editQuestionnaire() {
     if (!response.ok) {
       console.error('❌ Error en saveAnswer - status:', response.status);
     } else {
-      console.log(isDeleting ? '✅ Eliminación confirmada' : '✅ Guardado confirmado', 'para', questionId);
     }
 } catch (error) {
     console.error('❌ Error en saveAnswer:', error);
@@ -16337,7 +16132,6 @@ async function startRecording(questionId) {
       // Esperar un poco antes de procesar
       setTimeout(() => {
         currentAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        console.log('Blob creado, tamaño:', currentAudioBlob.size, 'chunks:', audioChunks.length);
         setupAudioPlayback(questionId, currentAudioBlob);
         stream.getTracks().forEach(track => track.stop());
       }, 100);
@@ -16373,7 +16167,6 @@ async function startRecording(questionId) {
 document.getElementById('recordingStatus_' + questionId).innerHTML = 
   '<span style="color: #dc2626; font-weight: 500;">' + getTranslation('audio.status.recording') + '</span>';
 
-    console.log('Grabación iniciada para:', questionId);
     
   } catch (error) {
     console.error('Error accediendo al micrófono:', error);
@@ -16393,7 +16186,6 @@ function stopRecording(questionId) {
 document.getElementById('recordingStatus_' + questionId).innerHTML = 
   '<span style="color: #059669; font-weight: 500;">' + getTranslation('audio.status.completed') + '</span>';
 
-    console.log('Grabación detenida para:', questionId);
   }
 }
 
@@ -16413,7 +16205,6 @@ function setupAudioPlayback(questionId, audioBlob) {
 }
 
 async function saveAudioRecording(questionId, audioBlob) {
-  console.log('Preparando envío de audio, tamaño:', audioBlob.size);
   
   try {
     const response = await fetch('/api/questionnaire/save-audio-simple', {
@@ -16431,7 +16222,6 @@ async function saveAudioRecording(questionId, audioBlob) {
 document.getElementById('recordingStatus_P26').innerHTML = 
   '<span style="color: #059669; font-weight: 500;">' + getTranslation('audio.status.saved') + '</span>';
   
-  console.log('Audio guardado:', result.audioData);
     } else {
       throw new Error(result.error);
     }
@@ -16462,7 +16252,6 @@ if (confirm(getTranslation('audio.confirm.delete'))) {
     // Limpiar variables
     currentAudioBlob = null;
     
-    console.log('Grabación eliminada para:', questionId);
   }
 }
 
@@ -16550,7 +16339,6 @@ function setRanking(questionId, optionValue, rank) {
   state.answers[questionId].answer = ranking;
   state.answers[questionId].ts_utc = new Date().toISOString();
   
-  console.log('Ranking guardado:', questionId, '=', ranking);
   
   // Enviar objeto directamente
   saveAnswer(questionId, ranking);
@@ -16577,7 +16365,6 @@ async function saveAnswer(questionId, answer) {
     if (!data.ok) {
       console.error('Error guardando respuesta:', data.error);
     } else {
-      console.log('Respuesta guardada:', questionId, '=', answer);
     }
   } catch (error) {
     console.error('Error guardando:', error);
@@ -16648,7 +16435,6 @@ async function nextQuestion() {
         
         if (response.ok) {
           state.isCompleted = true;
-          console.log('Cuestionario marcado como completado exitosamente');
         }
       } catch (error) {
         console.error('Error completando cuestionario:', error);
@@ -16671,7 +16457,6 @@ function calculateTotalQuestionsForParticipant() {
     }
   });
   
-  console.log('📊 Total preguntas aplicables para este participante:', totalQuestions);
   return totalQuestions;
 }
 
@@ -16705,7 +16490,6 @@ function calculateAnsweredQuestionsForParticipant() {
           const hasValidRanks = assignedRanks.every(rank => rank >= 1 && rank <= maxRank);
           const hasUniqueRanks = new Set(assignedRanks).size === assignedRanks.length;
           
-          console.log('🔢 Verificando ranking ' + question.id + ':', {
             assignedRanks: assignedRanks,
             maxRank: maxRank,
             hasAllRanks: hasAllRanks,
@@ -16729,7 +16513,6 @@ function calculateAnsweredQuestionsForParticipant() {
     }
   });
   
-  console.log('✅ Preguntas respondidas aplicables:', answeredCount);
   return answeredCount;
 }
 
@@ -16869,7 +16652,6 @@ window.addEventListener('DOMContentLoaded', init);
 
 
 function navigateToQuestion(questionId) {
-  console.log('Navegando a pregunta:', questionId);
   
   // Manejar casos especiales de P09 phases
   if (questionId.startsWith('P09_phase') || questionId === 'P09_preference') {
@@ -16882,7 +16664,6 @@ function navigateToQuestion(questionId) {
       openSpecificPhase(questionId);
     }, 300);
     
-    console.log('Navegación completada a P09 (fase específica)');
     return;
   }
   
@@ -16901,7 +16682,6 @@ function navigateToQuestion(questionId) {
   // Scroll suave hacia arriba
   window.scrollTo({ top: 0, behavior: 'smooth' });
   
-  console.log('Navegación completada a:', questionId);
 }
 
 
@@ -16910,7 +16690,6 @@ function navigateToQuestion(questionId) {
 // ===== SISTEMA DE NAVEGACIÓN CON BOTONES NUMERADOS =====
 
 function generateQuestionNavigationButtons() {
-  console.log('Generando botones de navegación numerados');
   
   const buttons = [];
   const currentLang = state.currentLanguage || state.language || 'es';
@@ -16992,7 +16771,6 @@ if (p22aAnswer && ['varios', 'algun'].includes(p22aAnswer)) {
   
   buttons.push(createNavigationButton('P26', '25'));
   
-  console.log('Generados', buttons.length, 'botones de navegación');
   return generateButtonsHTML(buttons);
 }
 
@@ -17124,11 +16902,9 @@ html += '<span>' + getTranslation('navigation.status_optional') + '</span>';
 
 
 function openSpecificPhase(phaseId) {
-  console.log('=== Abriendo fase:', phaseId);
   
   // Buscar todos los elementos <details> en la página
   const allDetails = document.querySelectorAll('details');
-  console.log('Details encontrados:', allDetails.length);
   
   if (phaseId === 'P09_preference') {
     // Para la pregunta final (8.4), hacer scroll al final de la página
@@ -17141,7 +16917,6 @@ function openSpecificPhase(phaseId) {
         });
       }
     }, 100);
-    console.log('✅ Scroll a pregunta final P09_preference');
     return;
   }
   
@@ -17165,7 +16940,6 @@ function openSpecificPhase(phaseId) {
       });
     }, 100);
     
-    console.log('✅ Fase abierta:', phaseId, 'en details índice:', targetIndex);
   } else {
     console.warn('❌ No se pudo encontrar details para:', phaseId);
   }
@@ -17627,12 +17401,10 @@ async function clearAllData() {
 
 
   (function(){
-  console.log('Dentro de la función principal');
 
 let totalParticipantsFromCSV = 0;
 let hideNotStarted = false;  // ← Esta variable es necesaria
 
-console.log('Variables definidas correctamente');
 
 
     // Captura de errores JS para no quedarse "Cargando…" sin feedback
@@ -17642,7 +17414,6 @@ console.log('Variables definidas correctamente');
       el.style.display = 'block';
     });
 
-console.log('Event listener añadido');
 
 window.toggleNotStarted = function() {
       hideNotStarted = !hideNotStarted;
@@ -17661,8 +17432,6 @@ window.toggleNotStarted = function() {
       // Re-renderizar la tabla con el filtro aplicado
       load();
     };
-console.log('Función toggleNotStarted definida');
-console.log('Variables iniciales definidas - después de comentar');
 
 
 
@@ -17679,15 +17448,12 @@ async function getAllResponseCounts() {
     
     const counts = {};
     
-    console.log('Obteniendo conteos para', participantsData.list.length, 'participantes');
     
     // Hacer una llamada por participante (pero con delay para evitar 429)
     for (const participant of participantsData.list) {
       try {
-        console.log('Obteniendo conteo para', participant.id);
         const response = await fetch('/api/participant/' + participant.id + '/response-count');
         const data = await response.json();
-        console.log('Conteo recibido para', participant.id, ':', data.count);
         counts[participant.id] = data.count || 0;
         
         // Pequeño delay para evitar rate limiting
@@ -17699,7 +17465,6 @@ async function getAllResponseCounts() {
       }
     }
     
-    console.log('Conteos finales:', counts);
     return counts;
     
   } catch (error) {
@@ -17710,7 +17475,6 @@ async function getAllResponseCounts() {
 
 // REEMPLAZAR la función generateDocumentIcon existente por esta versión sincrónica:
 function generateDocumentIcon(participant, answeredCount) {
-  console.log('Generando icono para', participant.id, 'con conteo:', answeredCount, 'tipo:', typeof answeredCount);
   
   if (answeredCount === 0) {
     return '<span style="color:#9ca3af;font-size:16px;" title="Sin respuestas">📄</span>';
@@ -17768,7 +17532,6 @@ function createLanguageBadge(lang) {
         totalParticipantsFromCSV = j.list.length;
         
         // DEBUG: Ver todos los participantes del CSV
-        console.log('📋 Participantes en CSV (' + j.list.length + '):', 
           j.list.map(function(p) { return p.id + ' (' + p.name + ')'; })
         );
         
@@ -17882,7 +17645,6 @@ var status = completed ? 'completed' :
 
 
         // DEBUG: Ver por qué se clasifica cada participante
-console.log('Clasificando ' + id + ':', {
   completed: completed,
   questionsAnswered: questionsAnswered,
   totalRows: rs.length,
@@ -17952,14 +17714,12 @@ function createPasswordField(password, participantId) {
 
 function createAuthBadge(requireAuth) {
 
- // console.log('Auth DEBUG - Original:', JSON.stringify(requireAuth), 'Tipo:', typeof requireAuth); // Debug temporal
   
   if (!requireAuth) return '<span class="muted">-</span>';
   
   // Limpiar comillas dobles extra como en el CSV
   const cleanValue = String(requireAuth).replace(/^"*|"*$/g, '').replace(/^"*|"*$/g, '').toLowerCase();
   
-  console.log('Auth DEBUG - Limpio:', JSON.stringify(cleanValue)); // Debug temporal
   
   if (cleanValue === 'yes' || cleanValue === '1' || cleanValue === 'true') {
     return '<span class="auth-badge auth-yes">Sí</span>';
@@ -17970,7 +17730,6 @@ function createAuthBadge(requireAuth) {
 
 
 function createActiveBadge(activeStatus) {
- console.log('DEBUG createActiveBadge - activeStatus:', JSON.stringify(activeStatus), 'Tipo:', typeof activeStatus);
   
   if (activeStatus === 'no') {
     return '<span style="color: #ef4444; font-size: 14px;" title="Inactivo - No puede editar">⚫</span>';
@@ -18012,9 +17771,7 @@ window.togglePassword = function(participantId) {
   var allResponseCounts = await getAllResponseCounts();
 
   // DEBUG ADICIONAL: Ver exactamente cómo se clasifica cada participante
-  console.log('🔍 Clasificación detallada:');
   summary.forEach(function(p) {
-    console.log('- ' + p.id + ': status=' + p.status + ', progress=' + p.progress + '% (' + (participantNames[p.id] ? participantNames[p.id].name : 'sin nombre') + ')');
   });
 
 
@@ -18025,7 +17782,6 @@ var prog = summary.filter(function(x){return x.status==='inProgress'}).length;
 var none = Math.max(0, totalParticipantsFromCSV - done - prog);
 
 // Debug para verificar que los números sean correctos
-console.log('📊 Cálculo de estadísticas:', {
   'Total en CSV': totalParticipantsFromCSV,
   'Completados': done,
   'En Progreso': prog,
@@ -18075,12 +17831,10 @@ for (const p of summary) {
   
   // Obtener el conteo para este participante (0 si no está en counts)
   var answeredCount = allResponseCounts[p.id] || 0;
-  console.log('Participante', p.id, 'tiene conteo:', answeredCount, 'tipo:', typeof answeredCount);
   
   var documentIcon = generateDocumentIcon(p, answeredCount);
 
   var participantInfo = participantNames[p.id] || { name: p.id, language: 'ES' };
-  console.log('Debug participante ' + p.id + ':', participantInfo);
   var participantName = participantNames[p.id] ? (participantNames[p.id].full_name || participantNames[p.id].name) : p.id;
 
 
@@ -18098,8 +17852,6 @@ var emailDisplay = participantInfo.email ?
   '<span class="muted">-</span>';
 var passwordDisplay = createPasswordField(participantInfo.password, p.id);
 var authBadge = createAuthBadge(participantInfo.require_auth);
-// console.log participantInfo completo para', p.id, ':', participantInfo);
-// console.log participantInfo.active:', participantInfo.active);
 
 html += '<tr>' +
   '<td><strong>' + esc(p.id) + '</strong></td>' +
@@ -19054,12 +18806,6 @@ app.post('/admin/questionnaire/clear', (req, res) => {
 app.post('/api/questionnaire/save', (req, res) => {
 
   // 🔍 DEBUG TEMPORAL
-  // console.log('=== SAVE ENDPOINT ===');
-  console.log('Content-Type:', req.headers['content-type']);
-  console.log('Content-Length:', req.headers['content-length']);
-  console.log('Body:', req.body);
-  console.log('Body type:', typeof req.body);
-  console.log('=============================');
 
 
   try {
@@ -19074,13 +18820,11 @@ app.post('/api/questionnaire/save', (req, res) => {
         (Array.isArray(answer) && answer.length === 0) ||
         answer === '' || answer === 'null' || answer === 'undefined') {
       
-      console.log('🗑️ Eliminando respuesta del servidor para', questionId, '- valor recibido:', answer);
       
       // Usar DELETE para limpiar completamente
       const deleteStmt = db.prepare('DELETE FROM questionnaire_answers WHERE participant_id = ? AND question_id = ?');
       deleteStmt.run(participantId, String(questionId));
       
-      console.log('✅ Respuesta eliminada del servidor para', questionId);
       
     } else {
       // Comportamiento normal: guardar/actualizar
@@ -19151,7 +18895,6 @@ app.post('/admin/questionnaire/reset/:id', (req, res) => {
 
     const totalDeleted = deletedResponses.changes + deletedStatus.changes;
 
-    console.log(`[ADMIN RESET] Participante ${participantId}: eliminadas ${deletedResponses.changes} respuestas, ${deletedStatus.changes} estados, ${csvLinesRemoved} líneas CSV`);
 
     res.json({ 
       ok: true, 
@@ -19505,9 +19248,6 @@ function readParticipantsFile(){
 
     let activeIdx = headers.indexOf('active');
 
-    // console.log CSV - headers completos:', headers);
-// console.log CSV - activeIdx encontrado:', activeIdx);
-// console.log CSV - delim detectado:', JSON.stringify(delim));
 
 
     if ((genderIdx == null || genderIdx < 0) && dniIdx >= 0 && (dniIdx + 1) < headers.length) {
@@ -19539,7 +19279,6 @@ function readParticipantsFile(){
   active: activeRaw.trim() || 'yes'
 });
     }
-    console.log(`[participants CSV] cargados ${m.size} registros (delim="${delim}")`);
     return { map:m, mtimeMs:stat.mtimeMs };
   } catch (e) {
     console.error('[participants CSV] error leyendo archivo:', e);
@@ -19773,7 +19512,6 @@ function generateLoginHTML(participantId, lang = 'es', error = null) {
       submitBtn.textContent = translations.loading;
       
 try {
-  console.log('Enviando petición de login...'); // Debug
   
   const response = await fetch('/api/auth/verify', {
     method: 'POST',
@@ -19787,10 +19525,8 @@ try {
     })
   });
   
-  console.log('Respuesta recibida:', response.status); // Debug
   
   const result = await response.json();
-  console.log('Resultado:', result); // Debug
   
   if (result.success) {
     window.location.href = result.redirect;
@@ -19801,7 +19537,6 @@ try {
   console.error('Error en login:', error); // Debug
   alert('Error de conexión. Por favor, inténtelo de nuevo.');
 } finally {
-  console.log('Finalizando petición...'); // Debug
   submitBtn.disabled = false;
   submitBtn.textContent = translations.login_button;
 }
@@ -19844,7 +19579,6 @@ app.use((req, res, next) => {
                        req.url.match(/\.(mp3|wav|ogg|jpg|jpeg|png|gif|webp|css|js|ico|woff|woff2|ttf|svg)$/i);
   
   if (!isStaticFile) {
-    console.log(`REQUEST: ${req.method} ${req.url}`);
   }
   next();
 });
@@ -19856,15 +19590,7 @@ app.use('/public', express.static('public'));
 
 // Endpoint de auth con middleware específico
 app.post('/api/auth/verify', authLimiter, (req, res) => {
-  console.log('POST /api/auth/verify recibido');
-  console.log('Body:', req.body);
 
-  // console.log('=== AUTH ENDPOINT ===');
-  console.log('Content-Type:', req.headers['content-type']);
-  console.log('Content-Length:', req.headers['content-length']);
-  console.log('Body:', req.body);
-  console.log('Body type:', typeof req.body);
-  console.log('===============================');
   
   const { email, password, participantId } = req.body || {};
   
@@ -19882,40 +19608,26 @@ app.post('/api/auth/verify', authLimiter, (req, res) => {
   }
   
 // Verificar credenciales
-console.log('🔍 VERIFICANDO CREDENCIALES:');
-console.log('Email recibido:', email);
-console.log('Email esperado:', participant.email);
-console.log('Password recibido:', password);
-console.log('Password esperado:', participant.password);
-console.log('¿Coinciden emails?', participant.email === email);
-console.log('¿Coinciden passwords?', participant.password === password);
 
 const isValidCredentials = participant.email === email && participant.password === password;
-console.log('¿Credenciales válidas?', isValidCredentials);
   
   if (!isValidCredentials) {
     return res.status(401).json({ success: false, error: 'invalid_credentials' });
   }
 
-  console.log('✅ CREANDO SESIÓN...');
 req.session.authenticated = participantId;
 req.session.authTime = Date.now();
-console.log('✅ SESIÓN CREADA:', req.session);
 
-console.log('✅ ENVIANDO RESPUESTA DE ÉXITO...');
 const response = { 
   success: true,
   redirect: `/questionnaire/${participantId}`
 };
-console.log('✅ RESPUESTA:', response);
 
 res.json(response);
 });
 
 // TEST ENDPOINT - AGREGAR ANTES DEL ENDPOINT DE AYUDA
 app.post('/api/test', (req, res) => {
-  console.log('✅ TEST ENDPOINT FUNCIONANDO');
-  console.log('Body recibido:', req.body);
   res.json({ test: 'ok', body: req.body });
 });
 
@@ -19924,11 +19636,6 @@ app.post('/api/test', (req, res) => {
 app.post('/api/help/send', async (req, res) => {
   try {
 
-    // console.log EMAIL CONFIG:');
-    console.log('EMAIL_USER:', EMAIL_USER ? 'CONFIGURADO' : 'NO CONFIGURADO');
-    console.log('EMAIL_PASS:', EMAIL_PASS ? 'CONFIGURADO' : 'NO CONFIGURADO');
-    console.log('RESEARCH_EMAIL:', RESEARCH_EMAIL ? 'CONFIGURADO' : 'NO CONFIGURADO');
-    console.log('transporter exists:', typeof transporter);
 
     const { participantId, currentQuestion, questionTitle, message, timestamp } = req.body || {};
     
@@ -20111,7 +19818,6 @@ try {
       html
     });
 
-    console.log(`✅ Consulta de ayuda enviada: ${participantId} - Pregunta ${buttonLabel}`);
     
     res.json({ ok: true, message: 'Consulta enviada correctamente' });
     
@@ -20151,14 +19857,12 @@ app.get('/login', (req, res) => {
 
 app.get('/', (req, res) => {
   const { id, authenticated } = req.query;
-  console.log('🔍 DEBUG AUTH:', { id, authenticated });
   
   if (!id) {
     return res.status(400).send('ID de participante requerido');
   }
   
   const participant = lookupParticipant(id);
-  console.log('🔍 DEBUG PARTICIPANT:', participant);
   
   if (!participant) {
     return res.status(404).send('Participante no encontrado');
@@ -20170,7 +19874,6 @@ app.get('/', (req, res) => {
   }
   
   // Redirigir al cuestionario en la URL correcta
-  console.log('🔍 ACCEDIENDO AL CUESTIONARIO');
   return res.redirect(`/questionnaire/${encodeURIComponent(id)}`);
 });
 
@@ -20696,6 +20399,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[PrionStudy] listening on port ${PORT} env=${NODE_ENV}`);
 });"// Emergency sync $(date)" 
 // Force Railway sync with debugging Thu Nov  6 09:14:17 RST 2025
