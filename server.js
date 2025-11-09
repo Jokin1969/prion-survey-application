@@ -15,6 +15,8 @@ import { fileURLToPath } from 'url';
 import session from 'express-session';
 import connectSqlite3 from 'connect-sqlite3';
 import crypto from 'crypto';
+import cron from 'node-cron';
+import * as backupService from './services/backup-service.js';
 
 console.log('🚀 Servidor iniciado - Versión con debugging');
 
@@ -3089,7 +3091,152 @@ app.get('/admin/export/responses-csv', async (req, res) => {
   }
 });
 
+// ============================================
+// ENDPOINTS DE BACKUP (Sistema 3 capas)
+// ============================================
 
+// Verificar estado de configuración de Dropbox
+app.get('/admin/backup/status', (req, res) => {
+  try {
+    const status = backupService.checkDropboxConfig();
+    res.json({
+      ok: true,
+      ...status,
+      backupLayers: {
+        layer1: 'Backups locales en Railway (automático)',
+        layer2: 'CSV a Dropbox (requiere configuración)',
+        layer3: 'DB completa a Dropbox (requiere configuración)'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// Capa 1: Crear backup local
+app.post('/admin/backup/local', async (req, res) => {
+  try {
+    const result = await backupService.createLocalBackup();
+
+    if (result.success) {
+      res.json({
+        ok: true,
+        message: 'Backup local creado exitosamente',
+        ...result
+      });
+    } else {
+      res.status(500).json({
+        ok: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// Capa 2: Exportar CSV a Dropbox
+app.post('/admin/backup/csv-dropbox', async (req, res) => {
+  try {
+    const result = await backupService.exportCSVToDropbox(db);
+
+    if (result.success) {
+      res.json({
+        ok: true,
+        message: 'CSV exportado a Dropbox exitosamente',
+        ...result
+      });
+    } else {
+      res.status(500).json({
+        ok: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// Capa 3: Backup completo de DB a Dropbox
+app.post('/admin/backup/db-dropbox', async (req, res) => {
+  try {
+    const result = await backupService.backupDatabaseToDropbox();
+
+    if (result.success) {
+      res.json({
+        ok: true,
+        message: 'Base de datos subida a Dropbox exitosamente',
+        ...result
+      });
+    } else {
+      res.status(500).json({
+        ok: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// Backup completo (ejecuta las 3 capas)
+app.post('/admin/backup/full', async (req, res) => {
+  try {
+    const result = await backupService.fullBackup(db);
+    res.json({
+      ok: true,
+      message: 'Backup completo ejecutado',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// Limpiar backups antiguos
+app.post('/admin/backup/cleanup', async (req, res) => {
+  try {
+    const retentionDays = parseInt(req.query.days) || 7;
+    const result = await backupService.cleanOldBackups(retentionDays);
+
+    if (result.success) {
+      res.json({
+        ok: true,
+        message: 'Limpieza de backups completada',
+        ...result
+      });
+    } else {
+      res.status(500).json({
+        ok: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// Listar backups en Dropbox
+app.get('/admin/backup/list-dropbox', async (req, res) => {
+  try {
+    const folder = req.query.folder || 'database';
+    const result = await backupService.listDropboxBackups(folder);
+
+    if (result.success) {
+      res.json({
+        ok: true,
+        ...result
+      });
+    } else {
+      res.status(500).json({
+        ok: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
 
 // DEBUG: Ver todas las bases de datos
 app.get('/admin/debug/databases', (req, res) => {
@@ -20689,6 +20836,82 @@ app.use((err, req, res, next) => {
   }
   return next(err);
 });
+
+// ============================================
+// CRON JOBS - Backups automáticos
+// ============================================
+
+// Solo configurar cron jobs en producción
+if (process.env.NODE_ENV === 'production') {
+
+  // Capa 1: Backup local diario a las 2:00 AM
+  cron.schedule('0 2 * * *', async () => {
+    console.log('🕐 [CRON] Ejecutando backup local diario...');
+    try {
+      const result = await backupService.createLocalBackup();
+      if (result.success) {
+        console.log(`✅ [CRON] Backup local creado: ${result.fileName}`);
+
+        // Limpiar backups antiguos (> 7 días)
+        const cleanup = await backupService.cleanOldBackups(7);
+        console.log(`🧹 [CRON] Limpieza: ${cleanup.deleted} eliminados, ${cleanup.kept} conservados`);
+      } else {
+        console.error('❌ [CRON] Error en backup local:', result.error);
+      }
+    } catch (error) {
+      console.error('❌ [CRON] Error en backup local:', error);
+    }
+  }, {
+    timezone: "Europe/Madrid"
+  });
+
+  // Capa 2: Exportar CSV a Dropbox diariamente a las 3:00 AM
+  // (solo si Dropbox está configurado)
+  if (process.env.DROPBOX_ACCESS_TOKEN) {
+    cron.schedule('0 3 * * *', async () => {
+      console.log('🕐 [CRON] Exportando CSV a Dropbox...');
+      try {
+        const result = await backupService.exportCSVToDropbox(db);
+        if (result.success) {
+          console.log(`✅ [CRON] CSV exportado: ${result.recordCount} registros`);
+        } else {
+          console.error('❌ [CRON] Error exportando CSV:', result.error);
+        }
+      } catch (error) {
+        console.error('❌ [CRON] Error exportando CSV:', error);
+      }
+    }, {
+      timezone: "Europe/Madrid"
+    });
+
+    // Capa 3: Backup completo de DB a Dropbox semanalmente (domingos a las 4:00 AM)
+    cron.schedule('0 4 * * 0', async () => {
+      console.log('🕐 [CRON] Backup semanal completo a Dropbox...');
+      try {
+        const result = await backupService.backupDatabaseToDropbox();
+        if (result.success) {
+          console.log(`✅ [CRON] DB completa subida a Dropbox: ${(result.size / 1024).toFixed(2)} KB`);
+        } else {
+          console.error('❌ [CRON] Error en backup semanal:', result.error);
+        }
+      } catch (error) {
+        console.error('❌ [CRON] Error en backup semanal:', error);
+      }
+    }, {
+      timezone: "Europe/Madrid"
+    });
+
+    console.log('✅ Cron jobs de backup configurados:');
+    console.log('   📦 Backup local: Diario a las 2:00 AM');
+    console.log('   📤 CSV a Dropbox: Diario a las 3:00 AM');
+    console.log('   💾 DB a Dropbox: Domingos a las 4:00 AM');
+  } else {
+    console.log('⚠️  Dropbox no configurado - Solo backup local diario activo');
+    console.log('   Configura DROPBOX_ACCESS_TOKEN para habilitar backups externos');
+  }
+} else {
+  console.log('ℹ️  Cron jobs de backup desactivados (solo en producción)');
+}
 
 app.listen(PORT, () => {
   console.log(`[PrionStudy] listening on port ${PORT} env=${NODE_ENV}`);
