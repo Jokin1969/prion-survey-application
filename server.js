@@ -16,8 +16,6 @@ import session from 'express-session';
 import connectSqlite3 from 'connect-sqlite3';
 import crypto from 'crypto';
 
-console.log('🚀 Servidor iniciado - Versión con debugging');
-
 // ===== Init / Paths =====
 dotenv.config();
 const app = express();
@@ -94,11 +92,9 @@ const audioStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     try {
       const audioDir = path.join(DATA_DIR, 'audio');
-      console.log('Verificando/creando directorio de audio:', audioDir);
-      
+
       if (!fs.existsSync(audioDir)) {
         fs.mkdirSync(audioDir, { recursive: true, mode: 0o755 });
-        console.log('Directorio de audio creado exitosamente');
       }
       
       // Verificar permisos de escritura
@@ -120,8 +116,7 @@ const audioStorage = multer.diskStorage({
       const participantId = String(req.body.participantId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
       const questionId = String(req.body.questionId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
       const filename = `${participantId}_${questionId}_${timestamp}.webm`;
-      
-      console.log('Generando filename de audio:', filename);
+
       cb(null, filename);
     } catch (error) {
       console.error('Error generando nombre de archivo:', error);
@@ -148,10 +143,8 @@ const uploadAudio = multer({
     ];
     
     if (allowedMimes.includes(file.mimetype)) {
-      console.log('Tipo de archivo aceptado:', file.mimetype);
       cb(null, true);
     } else {
-      console.warn('Tipo de archivo rechazado:', file.mimetype);
       cb(new Error('Tipo de archivo no permitido. Solo se permiten archivos de audio.'));
     }
   }
@@ -275,18 +268,6 @@ const authTranslations = {
   }
 };
 
-
-
-
-
-console.log('[Config] DATA_DIR =', DATA_DIR);
-console.log('[Config] DB_PATH  =', DB_PATH);
-console.log('[Config] PUBLIC_DIR =', PUBLIC_DIR);
-console.log('[Config] ASSETS_DIR =', ASSETS_DIR);
-console.log('[Config] PARTICIPANT_CSV =', PARTICIPANT_CSV);
-if (!EMAIL_USER || !EMAIL_PASS || !RESEARCH_EMAIL) {
-  console.warn('[WARN] EMAIL_USER/EMAIL_PASS/RESEARCH_EMAIL no configurados. El envío de emails fallará.');
-}
 
 
 
@@ -1389,7 +1370,6 @@ function getMailingList() {
   const list = [];
   for (const [id, p] of map.entries()) {
     if (!p.email) continue;
-    console.log('Participante ' + id + ':', p); // ← AGREGAR ESTA LÍNEA
     list.push({
       id,
       name: p.name || p.full_name || id,
@@ -2106,16 +2086,13 @@ $sendBtn.addEventListener('click', async () => {
 
 
   try {
-    console.log('Iniciando cuestionario para:', state.participantId);
     await Promise.all([
       loadQuestionnaireStructure(),
       loadQuestionnaireState()
     ]);
-    
-    console.log('*** PUNTO 1: Antes de detectar idioma ***');
+
     await detectAndSetLanguage();
-    console.log('*** PUNTO 2: Después de detectar idioma ***');
-    
+
     calculateStartPosition();
     renderCurrentQuestion();
   } catch (error) {
@@ -3050,7 +3027,6 @@ console.log('Total respuestas encontradas:', responses.length);
     for (const participantId of participantIds) {
       // Obtener datos del participante
       const participant = lookupParticipant(participantId);
-      console.log(`Participante ${participantId}:`, participant);
       const fullName = participant ? (participant.full_name || participant.name || participantId) : participantId;
       
       const row = [participantId, `"${fullName}"`];
@@ -4249,15 +4225,11 @@ app.get('/admin/clean-orphaned-responses', async (req, res) => {
 app.get('/api/participant/:id', (req, res) => {
   try {
     const participantId = req.params.id;
-    console.log('Buscando participante:', participantId);
-    
     const participantData = lookupParticipant(participantId);
-    
+
     if (participantData) {
-      console.log('Participante encontrado:', participantData);
       res.json(participantData);
     } else {
-      console.log('Participante no encontrado:', participantId);
       res.status(404).json({ error: 'Participante no encontrado' });
     }
   } catch (error) {
