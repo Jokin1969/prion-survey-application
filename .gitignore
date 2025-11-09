@@ -160,3 +160,26 @@ logs/
 # Archivos de configuración local
 config/local.*
 vite.config.ts.timestamp-*
+
+# ============================================
+# Protecciones específicas del proyecto
+# ============================================
+
+# Backups automáticos (generados por deploy.sh)
+backups/
+*.backup
+*.bak
+
+# Archivos temporales de SQLite
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Base de datos local (solo para desarrollo)
+data/*.db
+data/sessions.db
+
+# Copias temporales de archivos
+*- copia.*
+*-copia.*
+*.copy
