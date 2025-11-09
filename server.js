@@ -2649,7 +2649,7 @@ console.log('🔥 FUNCIÓN CSV EJECUTÁNDOSE');
     });
 
 
-    console.log('=== DEBUG CSV ===');
+    // console.log CSV ===');
 console.log('Participantes en DB:', Object.keys(responsesByParticipant));
 console.log('Total respuestas encontradas:', responses.length);
 
@@ -3796,19 +3796,19 @@ app.get('/api/participants/response-counts', (req, res) => {
     }
     
     const header = lines[0].split(',').map(col => col.trim().replace(/\r/g, ''));
-    console.log('Header CSV:', header); // DEBUG
+    // console.log
     
     const participantIdIndex = header.findIndex(col => col.toLowerCase() === 'participant_id');
     const responseIndex = header.findIndex(col => col.toLowerCase() === 'response');
     
-    console.log('Indices:', { participantIdIndex, responseIndex }); // DEBUG
+    // console.log
     
     // Ver primeras 3 líneas de datos
     for (let i = 1; i < Math.min(4, lines.length); i++) {
       const line = lines[i].trim();
       if (line) {
         const columns = line.split(',').map(col => col.trim().replace(/"/g, ''));
-        console.log(`Línea ${i}:`, columns); // DEBUG
+        // console.log(`Línea ${i}:`, columns); // DEBUG
         console.log(`Respuesta:`, columns[responseIndex]); // DEBUG
       }
     }
@@ -3827,7 +3827,7 @@ app.get('/api/participants/response-counts', (req, res) => {
       }
     }
     
-    console.log('Conteos finales:', counts); // DEBUG
+    // console.log
     res.json({ counts });
     
   } catch (error) {
@@ -14606,7 +14606,7 @@ const lastAnsweredBtn = '<button class="btn btn-small" onclick="goToLastAnswered
 
 
 // ✅ AGREGAR DEBUG TEMPORAL:
-console.log('=== DEBUG P08 NOTAS ===');
+// console.log P08 NOTAS ===');
 console.log('questionId:', questionId);
 console.log('question.contextNote exists:', !!question.contextNote);
 console.log('question.contextWarning exists:', !!question.contextWarning);
@@ -14621,14 +14621,14 @@ console.log('=======================');
 
 
 // ✅ AGREGAR EXACTAMENTE ESTAS LÍNEAS DESPUÉS:
-console.log('=== DEBUG HTML P08 ===');
+// console.log HTML P08 ===');
 console.log('Contiene NOTA I?', content.innerHTML.includes('NOTA I'));
 console.log('Contiene CONSIDERACIONES?', content.innerHTML.includes('CONSIDERACIONES IMPORTANTES'));
 console.log('Longitud HTML:', content.innerHTML.length);
 console.log('======================');
 
 // DEBUGGING TEMPORAL - BORRA DESPUÉS
-console.log('=== DEBUG PREGUNTA ===');
+// console.log PREGUNTA ===');
 console.log('Question ID:', questionId);
 console.log('noteAfterOptions existe?:', !!question.noteAfterOptions);
 console.log('noteAfterOptions contenido:', question.noteAfterOptions);
@@ -15007,7 +15007,7 @@ console.log('TEST TRADUCCIÓN lastAnswered:', getTranslation('navigation.lastAns
 
 
   // DEBUG TEMPORAL - BORRAR DESPUÉS
-console.log('=== DEBUG TRADUCCIONES ===');
+// console.log TRADUCCIONES ===');
 console.log('questionId:', questionId);
 console.log('state.language:', state.language);
 console.log('translatedQuestion:', translatedQuestion);
@@ -15041,14 +15041,14 @@ if (question.type === 'single') {
 
 
     // AGREGAR ESTAS LÍNEAS DEBUG:
-console.log('OPCION DEBUG:', opt.value);
+// console.log:', opt.value);
 console.log('  Original:', opt.label);
 console.log('  Traducida:', optionLabel);
 console.log('  translatedOptions:', translatedOptions);
 
 
 // DEBUG TEMPORAL - GÉNERO
-console.log('GÉNERO DEBUG:');
+// console.log:');
 console.log('  state.gender:', state.gender);
 console.log('  optionLabel ANTES:', optionLabel);
           
@@ -15094,7 +15094,7 @@ if (selectedCount > 0) {
         }
 
 
-  console.log('=== DEBUG P07 INICIO ===');
+  // console.log('=== P07 INICIO ===');
   console.log('questionId:', questionId);
   console.log('current language:', state.language);
   console.log('translatedQuestion exists:', !!translatedQuestion);
@@ -15110,12 +15110,12 @@ if (selectedCount > 0) {
           const checked = isChecked ? 'checked' : '';
           const disabled = !state.canEdit ? 'disabled' : '';
 
-    console.log('--- Opción:', opt.value);
-    console.log('    original:', opt.label);
+    // console.log('--- Opción:', opt.value);
+    // console.log('    original:', opt.label);
 
     const optionLabel = translatedOptions?.[opt.value] || opt.label;
 
-    console.log('    traducida:', optionLabel);
+    // console.log('    traducida:', optionLabel);
     console.log('    ¿mismo texto?', opt.label === optionLabel);
 
           optionsHTML +=
@@ -15451,7 +15451,7 @@ const content = document.getElementById('questionContent');
 
         
 // DEBUG TEMPORAL - BORRAR DESPUÉS
-console.log('=== DEBUG FUNCIÓN ===');
+// console.log FUNCIÓN ===');
 console.log('typeof getTranslation:', typeof getTranslation);
 console.log('state.language:', state.language);
 console.log('state.currentLanguage:', state.currentLanguage);
@@ -15533,7 +15533,7 @@ console.log('HTML length:', content.innerHTML.length);
 console.log('================================');     
 
         // AGREGAR AQUÍ LOS LOGS:
-console.log('=== DEBUG PREGUNTA ===');
+// console.log PREGUNTA ===');
 console.log('Question ID:', questionId);
 console.log('noteAfterOptions existe?:', !!question.noteAfterOptions);
 console.log('noteAfterOptions contenido:', question.noteAfterOptions);
@@ -15609,7 +15609,7 @@ function getReady() {
 
 function getTratamiento() {
   // Debug temporal - puedes eliminar estos console.log después
-  console.log('=== DEBUG getTratamiento ===');
+  // console.log('=== getTratamiento ===');
   console.log('state.gender:', state.gender);
   console.log('state.language:', state.language);
   console.log('typeof state.gender:', typeof state.gender);
@@ -17980,7 +17980,7 @@ function createPasswordField(password, participantId) {
 
 function createAuthBadge(requireAuth) {
 
- console.log('Auth DEBUG - Original:', JSON.stringify(requireAuth), 'Tipo:', typeof requireAuth); // Debug temporal
+ // console.log('Auth DEBUG - Original:', JSON.stringify(requireAuth), 'Tipo:', typeof requireAuth); // Debug temporal
   
   if (!requireAuth) return '<span class="muted">-</span>';
   
@@ -18126,8 +18126,8 @@ var emailDisplay = participantInfo.email ?
   '<span class="muted">-</span>';
 var passwordDisplay = createPasswordField(participantInfo.password, p.id);
 var authBadge = createAuthBadge(participantInfo.require_auth);
-console.log('DEBUG participantInfo completo para', p.id, ':', participantInfo);
-console.log('DEBUG participantInfo.active:', participantInfo.active);
+// console.log participantInfo completo para', p.id, ':', participantInfo);
+// console.log participantInfo.active:', participantInfo.active);
 
 html += '<tr>' +
   '<td><strong>' + esc(p.id) + '</strong></td>' +
@@ -19082,7 +19082,7 @@ app.post('/admin/questionnaire/clear', (req, res) => {
 app.post('/api/questionnaire/save', (req, res) => {
 
   // 🔍 DEBUG TEMPORAL
-  console.log('=== DEBUG SAVE ENDPOINT ===');
+  // console.log('=== SAVE ENDPOINT ===');
   console.log('Content-Type:', req.headers['content-type']);
   console.log('Content-Length:', req.headers['content-length']);
   console.log('Body:', req.body);
@@ -19533,9 +19533,9 @@ function readParticipantsFile(){
 
     let activeIdx = headers.indexOf('active');
 
-    console.log('🔍 DEBUG CSV - headers completos:', headers);
-console.log('🔍 DEBUG CSV - activeIdx encontrado:', activeIdx);
-console.log('🔍 DEBUG CSV - delim detectado:', JSON.stringify(delim));
+    // console.log CSV - headers completos:', headers);
+// console.log CSV - activeIdx encontrado:', activeIdx);
+// console.log CSV - delim detectado:', JSON.stringify(delim));
 
 
     if ((genderIdx == null || genderIdx < 0) && dniIdx >= 0 && (dniIdx + 1) < headers.length) {
@@ -19887,7 +19887,7 @@ app.post('/api/auth/verify', authLimiter, (req, res) => {
   console.log('POST /api/auth/verify recibido');
   console.log('Body:', req.body);
 
-  console.log('=== DEBUG AUTH ENDPOINT ===');
+  // console.log('=== AUTH ENDPOINT ===');
   console.log('Content-Type:', req.headers['content-type']);
   console.log('Content-Length:', req.headers['content-length']);
   console.log('Body:', req.body);
@@ -19952,7 +19952,7 @@ app.post('/api/test', (req, res) => {
 app.post('/api/help/send', async (req, res) => {
   try {
 
-    console.log('🔍 DEBUG EMAIL CONFIG:');
+    // console.log EMAIL CONFIG:');
     console.log('EMAIL_USER:', EMAIL_USER ? 'CONFIGURADO' : 'NO CONFIGURADO');
     console.log('EMAIL_PASS:', EMAIL_PASS ? 'CONFIGURADO' : 'NO CONFIGURADO');
     console.log('RESEARCH_EMAIL:', RESEARCH_EMAIL ? 'CONFIGURADO' : 'NO CONFIGURADO');
