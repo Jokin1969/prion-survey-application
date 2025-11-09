@@ -171,7 +171,7 @@ export async function exportCSVToDropbox(db) {
 
     // Subir a Dropbox
     const timestamp = new Date().toISOString().split('T')[0];
-    const dropboxPath = `/backups/csv/actprion_responses_${timestamp}.csv`;
+    const dropboxPath = `/ActPrion/backups/csv/actprion_responses_${timestamp}.csv`;
 
     const result = await dbx.filesUpload({
       path: dropboxPath,
@@ -213,7 +213,7 @@ export async function backupDatabaseToDropbox() {
 
     // Subir a Dropbox
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const dropboxPath = `/backups/database/actprion_${timestamp}.db`;
+    const dropboxPath = `/ActPrion/backups/database/actprion_${timestamp}.db`;
 
     const result = await dbx.filesUpload({
       path: dropboxPath,
@@ -249,7 +249,7 @@ export async function listDropboxBackups(folder = 'database') {
       throw new Error('Dropbox no configurado. Falta DROPBOX_ACCESS_TOKEN');
     }
 
-    const dropboxPath = `/backups/${folder}`;
+    const dropboxPath = `/ActPrion/backups/${folder}`;
 
     const result = await dbx.filesListFolder({ path: dropboxPath });
 
