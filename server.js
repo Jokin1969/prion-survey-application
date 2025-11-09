@@ -3240,7 +3240,7 @@ app.get('/admin/backup/list-dropbox', async (req, res) => {
 
 // ===== IMPORTAR PARTICIPANTES DESDE DROPBOX =====
 // Importa participantes.csv desde /ActPrion/Databases/ en Dropbox
-app.post('/admin/import-participants', async (req, res) => {
+app.get('/admin/import-participants', async (req, res) => {
   try {
     const result = await backupService.importParticipantsFromDropbox();
 
