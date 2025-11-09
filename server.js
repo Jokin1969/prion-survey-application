@@ -1389,7 +1389,6 @@ function getMailingList() {
   const list = [];
   for (const [id, p] of map.entries()) {
     if (!p.email) continue;
-    console.log('Participante ' + id + ':', p); // ← AGREGAR ESTA LÍNEA
     list.push({
       id,
       name: p.name || p.full_name || id,
@@ -2614,10 +2613,6 @@ app.get('/admin/debug/variables', (req, res) => {
 
 
 app.get('/admin/export/responses-csv', async (req, res) => {
-console.log('🔥 FUNCIÓN CSV EJECUTÁNDOSE');
-  console.log('='.repeat(50));
-  console.log('CSV FUNCTION CALLED - START');
-  console.log('='.repeat(50));
   try {
     // Obtener todas las respuestas
     const responses = db.prepare(`
@@ -2648,10 +2643,6 @@ console.log('🔥 FUNCIÓN CSV EJECUTÁNDOSE');
       };
     });
 
-
-    // console.log CSV ===');
-console.log('Participantes en DB:', Object.keys(responsesByParticipant));
-console.log('Total respuestas encontradas:', responses.length);
 
     // Lista de todas las preguntas en orden
     const allQuestions = [
@@ -3050,7 +3041,6 @@ console.log('Total respuestas encontradas:', responses.length);
     for (const participantId of participantIds) {
       // Obtener datos del participante
       const participant = lookupParticipant(participantId);
-      console.log(`Participante ${participantId}:`, participant);
       const fullName = participant ? (participant.full_name || participant.name || participantId) : participantId;
       
       const row = [participantId, `"${fullName}"`];
@@ -4249,15 +4239,11 @@ app.get('/admin/clean-orphaned-responses', async (req, res) => {
 app.get('/api/participant/:id', (req, res) => {
   try {
     const participantId = req.params.id;
-    console.log('Buscando participante:', participantId);
-    
     const participantData = lookupParticipant(participantId);
-    
+
     if (participantData) {
-      console.log('Participante encontrado:', participantData);
       res.json(participantData);
     } else {
-      console.log('Participante no encontrado:', participantId);
       res.status(404).json({ error: 'Participante no encontrado' });
     }
   } catch (error) {
@@ -12411,44 +12397,28 @@ P26: {
 
 async function loadParticipantData() {
   try {
-    console.log('=== CARGANDO DATOS DEL PARTICIPANTE ===');
     const response = await fetch('/api/participant/' + state.participantId);
-    
+
     if (response.ok) {
       const participantData = await response.json();
-      console.log('Datos recibidos del servidor:', participantData);
       state.participantData = participantData;
-      
+
       if (participantData.lang) {
-        console.log('Idioma del CSV:', participantData.lang);
         state.currentLanguage = participantData.lang;
-        
-        // AÑADIR: Cambiar automáticamente la interfaz al idioma detectado
-        console.log('Cambiando interfaz al idioma:', participantData.lang);
         changeLanguage(participantData.lang);
-        
       } else {
-        console.log('Sin idioma en CSV, usando español por defecto');
         state.currentLanguage = 'es';
       }
 
 if (participantData.gender) {
   state.gender = participantData.gender;
-  console.log('✅ Género cargado:', state.gender);
 } else if (participantData.genero) {
   state.gender = participantData.genero;
-  console.log('✅ Género cargado (campo genero):', state.gender);
 } else if (participantData.sexo) {
   state.gender = participantData.sexo;
-  console.log('✅ Género cargado (campo sexo):', state.gender);
-} else {
-  console.log('❌ Sin género en participantData. Campos disponibles:', Object.keys(participantData));
 }
 
-
-      console.log('Idioma establecido:', state.currentLanguage);
     } else {
-      console.log('Error cargando participante');
       state.currentLanguage = 'es';
     }
   } catch (error) {
@@ -12459,14 +12429,11 @@ if (participantData.gender) {
 
 async function init() {
   try {
-    console.log('Iniciando cuestionario para:', state.participantId);
     await Promise.all([
       loadQuestionnaireStructure(),
       loadQuestionnaireState(),
       loadParticipantData()  // AÑADIR ESTA LÍNEA
     ]);
-
-    console.log('Idioma final establecido:', state.currentLanguage);
     
     // Calcular dónde posicionarse después de cargar todo
     calculateStartPosition();
