@@ -71,6 +71,22 @@ if git ls-files --error-unmatch .env &> /dev/null; then
     exit 1
 fi
 
+# Verificar que bases de datos NO están en staging
+if git ls-files --error-unmatch data/data.db &> /dev/null || \
+   git ls-files --error-unmatch data/*.db &> /dev/null || \
+   git ls-files --error-unmatch data/sessions.db &> /dev/null; then
+    echo -e "${RED}❌ ERROR CRÍTICO: Bases de datos están siendo trackeadas por git${NC}"
+    echo -e "${RED}   ¡PELIGRO! Podrías sobrescribir datos de producción${NC}"
+    echo ""
+    echo "   Archivos problemáticos:"
+    git ls-files | grep -E "data/.*\.db" | sed 's/^/   - /'
+    echo ""
+    echo "   Solución:"
+    echo "   git rm --cached data/data.db data/sessions.db"
+    echo "   git rm --cached data/*.db"
+    exit 1
+fi
+
 echo -e "${GREEN}✅ Validaciones completadas${NC}"
 echo ""
 
