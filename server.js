@@ -3304,7 +3304,8 @@ app.get('/admin/backup/status', async (req, res) => {
 });
 
 // Endpoint para forzar backup manual (útil para probar)
-app.post('/admin/backup/force-daily', async (req, res) => {
+// Soporta tanto GET como POST para facilitar uso desde navegador
+const forceBackupHandler = async (req, res) => {
   try {
     console.log('🔧 [MANUAL] Forzando ejecución de backups diarios...');
 
@@ -3348,7 +3349,10 @@ app.post('/admin/backup/force-daily', async (req, res) => {
     console.error('❌ [MANUAL] Error en backups:', error);
     res.status(500).json({ ok: false, error: error.message });
   }
-});
+};
+
+app.get('/admin/backup/force-daily', forceBackupHandler);
+app.post('/admin/backup/force-daily', forceBackupHandler);
 
 // ===== IMPORTAR PARTICIPANTES DESDE DROPBOX =====
 // Importa participantes.csv desde /ActPrion/Databases/ en Dropbox
