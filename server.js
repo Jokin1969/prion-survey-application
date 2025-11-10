@@ -3238,6 +3238,118 @@ app.get('/admin/backup/list-dropbox', async (req, res) => {
   }
 });
 
+// ===== DIAGNÓSTICO DE BACKUPS =====
+// Verifica el estado de los backups automáticos
+app.get('/admin/backup/status', async (req, res) => {
+  try {
+    const now = new Date();
+    const nowMadrid = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
+
+    // Verificar última ejecución en Dropbox
+    let lastCsvBackup = null;
+    let lastDbBackup = null;
+    let csvBackupCount = 0;
+    let dbBackupCount = 0;
+
+    if (process.env.DROPBOX_ACCESS_TOKEN) {
+      const csvResult = await backupService.listDropboxBackups('csv');
+      const dbResult = await backupService.listDropboxBackups('database');
+
+      if (csvResult.success && csvResult.files.length > 0) {
+        csvBackupCount = csvResult.files.length;
+        lastCsvBackup = csvResult.files[csvResult.files.length - 1];
+      }
+
+      if (dbResult.success && dbResult.files.length > 0) {
+        dbBackupCount = dbResult.files.length;
+        lastDbBackup = dbResult.files[dbResult.files.length - 1];
+      }
+    }
+
+    res.json({
+      ok: true,
+      currentTime: {
+        utc: now.toISOString(),
+        madrid: nowMadrid.toISOString(),
+        madridFormatted: nowMadrid.toLocaleString('es-ES', {
+          timeZone: 'Europe/Madrid',
+          dateStyle: 'full',
+          timeStyle: 'long'
+        })
+      },
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        dropboxConfigured: !!process.env.DROPBOX_ACCESS_TOKEN,
+        cronJobsEnabled: process.env.NODE_ENV === 'production'
+      },
+      cronSchedule: {
+        localBackup: '2:00 AM diario (Europe/Madrid)',
+        csvDropbox: '3:00 AM diario (Europe/Madrid)',
+        dbDropbox: '4:00 AM domingos (Europe/Madrid)'
+      },
+      dropboxBackups: {
+        csv: {
+          count: csvBackupCount,
+          lastBackup: lastCsvBackup
+        },
+        database: {
+          count: dbBackupCount,
+          lastBackup: lastDbBackup
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// Endpoint para forzar backup manual (útil para probar)
+app.post('/admin/backup/force-daily', async (req, res) => {
+  try {
+    console.log('🔧 [MANUAL] Forzando ejecución de backups diarios...');
+
+    const results = {
+      local: null,
+      csv: null,
+      timestamp: new Date().toISOString()
+    };
+
+    // Backup local
+    const localResult = await backupService.createLocalBackup();
+    results.local = localResult;
+
+    if (localResult.success) {
+      console.log(`✅ [MANUAL] Backup local creado: ${localResult.fileName}`);
+
+      // Limpiar backups antiguos
+      const cleanup = await backupService.cleanOldBackups(7);
+      results.cleanup = cleanup;
+      console.log(`🧹 [MANUAL] Limpieza: ${cleanup.deleted} eliminados, ${cleanup.kept} conservados`);
+    }
+
+    // CSV a Dropbox (si está configurado)
+    if (process.env.DROPBOX_ACCESS_TOKEN) {
+      const csvResult = await backupService.exportCSVToDropbox(db);
+      results.csv = csvResult;
+
+      if (csvResult.success) {
+        console.log(`✅ [MANUAL] CSV exportado: ${csvResult.recordCount} registros`);
+      }
+    } else {
+      results.csv = { success: false, error: 'Dropbox no configurado' };
+    }
+
+    res.json({
+      ok: true,
+      message: 'Backups diarios ejecutados manualmente',
+      results
+    });
+  } catch (error) {
+    console.error('❌ [MANUAL] Error en backups:', error);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 // ===== IMPORTAR PARTICIPANTES DESDE DROPBOX =====
 // Importa participantes.csv desde /ActPrion/Databases/ en Dropbox
 app.get('/admin/import-participants', async (req, res) => {
