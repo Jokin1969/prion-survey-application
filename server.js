@@ -3307,11 +3307,12 @@ app.get('/admin/backup/status', async (req, res) => {
 // Soporta tanto GET como POST para facilitar uso desde navegador
 const forceBackupHandler = async (req, res) => {
   try {
-    console.log('🔧 [MANUAL] Forzando ejecución de backups diarios...');
+    console.log('🔧 [MANUAL] Forzando ejecución de backups completos...');
 
     const results = {
       local: null,
       csv: null,
+      database: null,
       timestamp: new Date().toISOString()
     };
 
@@ -3336,13 +3337,22 @@ const forceBackupHandler = async (req, res) => {
       if (csvResult.success) {
         console.log(`✅ [MANUAL] CSV exportado: ${csvResult.recordCount} registros`);
       }
+
+      // DB completa a Dropbox
+      const dbResult = await backupService.backupDatabaseToDropbox();
+      results.database = dbResult;
+
+      if (dbResult.success) {
+        console.log(`✅ [MANUAL] DB completa subida a Dropbox: ${(dbResult.size / 1024).toFixed(2)} KB`);
+      }
     } else {
       results.csv = { success: false, error: 'Dropbox no configurado' };
+      results.database = { success: false, error: 'Dropbox no configurado' };
     }
 
     res.json({
       ok: true,
-      message: 'Backups diarios ejecutados manualmente',
+      message: 'Backups completos ejecutados manualmente',
       results
     });
   } catch (error) {
