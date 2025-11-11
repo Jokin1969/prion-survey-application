@@ -327,6 +327,58 @@ export function checkDropboxConfig() {
 }
 
 /**
+ * Validar token de Dropbox haciendo una llamada real a la API
+ * Intenta obtener información de la cuenta para verificar que el token funciona
+ *
+ * @returns {Object} Resultado de la validación
+ */
+export async function validateDropboxToken() {
+  try {
+    if (!dbx) {
+      return {
+        valid: false,
+        error: 'Dropbox no configurado. Falta DROPBOX_ACCESS_TOKEN',
+        needsAction: 'Configura DROPBOX_ACCESS_TOKEN en las variables de entorno de Railway'
+      };
+    }
+
+    // Intentar obtener información de la cuenta
+    const accountInfo = await dbx.usersGetCurrentAccount();
+
+    return {
+      valid: true,
+      message: 'Token válido y funcionando correctamente',
+      account: {
+        name: accountInfo.result.name.display_name,
+        email: accountInfo.result.email,
+        accountId: accountInfo.result.account_id
+      }
+    };
+  } catch (error) {
+    // Analizar el tipo de error
+    let needsAction = 'Regenerar token de Dropbox';
+    let errorDetails = error.message;
+
+    if (error.status === 401) {
+      errorDetails = 'Token expirado, revocado o inválido';
+      needsAction = 'Regenerar token en https://www.dropbox.com/developers/apps y actualizar DROPBOX_ACCESS_TOKEN en Railway';
+    } else if (error.status === 429) {
+      errorDetails = 'Rate limit excedido';
+      needsAction = 'Esperar unos minutos e intentar nuevamente';
+    } else if (error.error && error.error.error_summary) {
+      errorDetails = error.error.error_summary;
+    }
+
+    return {
+      valid: false,
+      error: errorDetails,
+      errorCode: error.status || 'unknown',
+      needsAction
+    };
+  }
+}
+
+/**
  * IMPORTACIÓN: Descargar participantes.csv desde Dropbox
  * Descarga el archivo desde /ActPrion/Databases/participantes.csv
  *

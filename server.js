@@ -3113,6 +3113,35 @@ app.get('/admin/backup/status', (req, res) => {
   }
 });
 
+// Validar token de Dropbox (hace una llamada real a la API)
+app.get('/admin/backup/validate-token', async (req, res) => {
+  try {
+    console.log('🔍 [DIAGNÓSTICO] Validando token de Dropbox...');
+    const validation = await backupService.validateDropboxToken();
+
+    if (validation.valid) {
+      console.log('✅ [DIAGNÓSTICO] Token válido:', validation.account.email);
+      res.json({
+        ok: true,
+        ...validation
+      });
+    } else {
+      console.error('❌ [DIAGNÓSTICO] Token inválido:', validation.error);
+      res.status(401).json({
+        ok: false,
+        ...validation
+      });
+    }
+  } catch (error) {
+    console.error('❌ [DIAGNÓSTICO] Error validando token:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message,
+      needsAction: 'Verificar configuración de Dropbox'
+    });
+  }
+});
+
 // Capa 1: Crear backup local
 app.post('/admin/backup/local', async (req, res) => {
   try {
