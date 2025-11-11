@@ -20530,7 +20530,33 @@ function validatePayload({ response, id, token }) {
 }
 
 // ===== API =====
-app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+// Health check mejorado para Railway
+app.get('/api/health', (req, res) => {
+  try {
+    // Verificar que la base de datos responda
+    db.prepare('SELECT 1').get();
+    questionnaireDb.prepare('SELECT 1').get();
+
+    res.status(200).json({
+      status: 'healthy',
+      service: 'prion-study',
+      time: new Date().toISOString(),
+      uptime: process.uptime(),
+      env: NODE_ENV
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      error: error.message,
+      time: new Date().toISOString()
+    });
+  }
+});
+
+// Health check simple para compatibilidad
+app.get('/health', (req, res) => res.status(200).send('OK'));
+app.get('/', (req, res) => res.status(200).send('Prion Study Application - Server Running'));
 app.get('/api/whoami', (req, res) => {
   const id = String(req.query.id || '').trim();
   if (!id) return res.status(400).json({ ok:false, error:'id requerido' });
@@ -21068,7 +21094,58 @@ if (process.env.NODE_ENV === 'production') {
   console.log('ℹ️  Cron jobs de backup desactivados (solo en producción)');
 }
 
-app.listen(PORT, () => {
-  console.log(`[PrionStudy] listening on port ${PORT} env=${NODE_ENV}`);
+// ============================================
+// ERROR HANDLERS - Prevenir crash loops
+// ============================================
+
+// Manejar promesas rechazadas no capturadas
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise);
+  console.error('❌ Reason:', reason);
+  // No salir del proceso - Railway lo reiniciaría constantemente
+});
+
+// Manejar excepciones no capturadas
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  console.error('❌ Stack:', error.stack);
+  // No salir del proceso - Railway lo reiniciaría constantemente
+});
+
+// Manejar señales de terminación gracefully
+process.on('SIGTERM', () => {
+  console.log('⚠️  SIGTERM recibido, cerrando servidor gracefully...');
+  db.close();
+  questionnaireDb.close();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('⚠️  SIGINT recibido, cerrando servidor gracefully...');
+  db.close();
+  questionnaireDb.close();
+  process.exit(0);
+});
+
+// ============================================
+// INICIAR SERVIDOR
+// ============================================
+
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log('========================================');
+  console.log(`✅ [PrionStudy] Server READY`);
+  console.log(`   Port: ${PORT}`);
+  console.log(`   Environment: ${NODE_ENV}`);
+  console.log(`   Time: ${new Date().toISOString()}`);
+  console.log('========================================');
+});
+
+// Manejar errores del servidor
+server.on('error', (error) => {
+  console.error('❌ Error en el servidor:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Puerto ${PORT} ya está en uso`);
+    process.exit(1);
+  }
 });"// Emergency sync $(date)" 
 // Force Railway sync with debugging Thu Nov  6 09:14:17 RST 2025
