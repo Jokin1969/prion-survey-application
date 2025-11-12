@@ -10,17 +10,119 @@
 import fs from 'fs';
 import path from 'path';
 import { Dropbox } from 'dropbox';
+import fetch from 'node-fetch';
 
 // Configuración
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, 'data.db');
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
-const DROPBOX_ACCESS_TOKEN = process.env.DROPBOX_ACCESS_TOKEN;
 
-// Inicializar Dropbox si hay token configurado
+// Variables de Dropbox (nueva configuración con refresh token)
+const DROPBOX_REFRESH_TOKEN = process.env.DROPBOX_REFRESH_TOKEN;
+const DROPBOX_APP_KEY = process.env.DROPBOX_APP_KEY;
+const DROPBOX_APP_SECRET = process.env.DROPBOX_APP_SECRET;
+
+// Token de acceso en memoria (se renueva automáticamente)
+let currentAccessToken = null;
+let tokenExpiresAt = null;
+
+// Inicializar Dropbox con refresh token
 let dbx = null;
-if (DROPBOX_ACCESS_TOKEN) {
-  dbx = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN });
+
+/**
+ * Renovar access token usando refresh token
+ * Los tokens de Dropbox modernos expiran en pocas horas y necesitan renovarse
+ *
+ * @returns {Promise<string>} Nuevo access token
+ */
+async function refreshAccessToken() {
+  try {
+    if (!DROPBOX_REFRESH_TOKEN || !DROPBOX_APP_KEY || !DROPBOX_APP_SECRET) {
+      throw new Error('Faltan credenciales de Dropbox para renovar token. Se requiere DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY y DROPBOX_APP_SECRET');
+    }
+
+    console.log('🔄 Renovando token de Dropbox...');
+
+    const response = await fetch('https://api.dropbox.com/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: DROPBOX_REFRESH_TOKEN,
+        client_id: DROPBOX_APP_KEY,
+        client_secret: DROPBOX_APP_SECRET
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error renovando token de Dropbox (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    currentAccessToken = data.access_token;
+    // Los tokens típicamente expiran en 4 horas, pero lo renovamos cada 3 horas para seguridad
+    const expiresInMs = (data.expires_in || 14400) * 1000; // default 4 horas
+    tokenExpiresAt = Date.now() + expiresInMs;
+
+    console.log(`✅ Token renovado exitosamente (expira en ${Math.floor(expiresInMs / 1000 / 60)} minutos)`);
+
+    return currentAccessToken;
+  } catch (error) {
+    console.error('❌ Error renovando token de Dropbox:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Obtener access token válido (renueva si es necesario)
+ *
+ * @returns {Promise<string>} Access token válido
+ */
+async function getValidAccessToken() {
+  // Si no hay token o está próximo a expirar (menos de 5 minutos), renovar
+  const BUFFER_TIME = 5 * 60 * 1000; // 5 minutos
+
+  if (!currentAccessToken || !tokenExpiresAt || Date.now() > (tokenExpiresAt - BUFFER_TIME)) {
+    currentAccessToken = await refreshAccessToken();
+  }
+
+  return currentAccessToken;
+}
+
+/**
+ * Inicializar cliente de Dropbox
+ * Esta función se llama automáticamente antes de cada operación de Dropbox
+ *
+ * @returns {Promise<Dropbox>} Cliente de Dropbox con token válido
+ */
+async function getDropboxClient() {
+  if (!DROPBOX_REFRESH_TOKEN || !DROPBOX_APP_KEY || !DROPBOX_APP_SECRET) {
+    return null;
+  }
+
+  try {
+    const accessToken = await getValidAccessToken();
+
+    // Crear o actualizar cliente con el token válido
+    if (!dbx) {
+      dbx = new Dropbox({
+        accessToken,
+        fetch // Necesario para node-fetch
+      });
+    } else {
+      // Actualizar token en cliente existente
+      dbx.auth.setAccessToken(accessToken);
+    }
+
+    return dbx;
+  } catch (error) {
+    console.error('Error inicializando cliente de Dropbox:', error);
+    return null;
+  }
 }
 
 /**
@@ -124,8 +226,9 @@ export async function cleanOldBackups(retentionDays = 7) {
  */
 export async function exportCSVToDropbox(db) {
   try {
-    if (!dbx) {
-      throw new Error('Dropbox no configurado. Falta DROPBOX_ACCESS_TOKEN');
+    const dbxClient = await getDropboxClient();
+    if (!dbxClient) {
+      throw new Error('Dropbox no configurado. Faltan credenciales (DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY, DROPBOX_APP_SECRET)');
     }
 
     // Obtener todas las respuestas
@@ -173,7 +276,7 @@ export async function exportCSVToDropbox(db) {
     const timestamp = new Date().toISOString().split('T')[0];
     const dropboxPath = `/ActPrion/backups/csv/actprion_responses_${timestamp}.csv`;
 
-    const result = await dbx.filesUpload({
+    const result = await dbxClient.filesUpload({
       path: dropboxPath,
       contents: Buffer.from('\ufeff' + csvContent, 'utf8'), // BOM para UTF-8
       mode: 'add',
@@ -204,8 +307,9 @@ export async function exportCSVToDropbox(db) {
  */
 export async function backupDatabaseToDropbox() {
   try {
-    if (!dbx) {
-      throw new Error('Dropbox no configurado. Falta DROPBOX_ACCESS_TOKEN');
+    const dbxClient = await getDropboxClient();
+    if (!dbxClient) {
+      throw new Error('Dropbox no configurado. Faltan credenciales (DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY, DROPBOX_APP_SECRET)');
     }
 
     // Leer base de datos
@@ -215,7 +319,7 @@ export async function backupDatabaseToDropbox() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const dropboxPath = `/ActPrion/backups/database/actprion_${timestamp}.db`;
 
-    const result = await dbx.filesUpload({
+    const result = await dbxClient.filesUpload({
       path: dropboxPath,
       contents: dbContent,
       mode: 'add',
@@ -245,13 +349,14 @@ export async function backupDatabaseToDropbox() {
  */
 export async function listDropboxBackups(folder = 'database') {
   try {
-    if (!dbx) {
-      throw new Error('Dropbox no configurado. Falta DROPBOX_ACCESS_TOKEN');
+    const dbxClient = await getDropboxClient();
+    if (!dbxClient) {
+      throw new Error('Dropbox no configurado. Faltan credenciales (DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY, DROPBOX_APP_SECRET)');
     }
 
     const dropboxPath = `/ActPrion/backups/${folder}`;
 
-    const result = await dbx.filesListFolder({ path: dropboxPath });
+    const result = await dbxClient.filesListFolder({ path: dropboxPath });
 
     const files = result.result.entries.map(entry => ({
       name: entry.name,
@@ -291,13 +396,14 @@ export async function fullBackup(db) {
   results.layers.local = await createLocalBackup();
 
   // Capa 2: CSV a Dropbox (solo si Dropbox está configurado)
-  if (dbx) {
+  const dbxClient = await getDropboxClient();
+  if (dbxClient) {
     console.log('📤 Capa 2: Exportando CSV a Dropbox...');
     results.layers.csvDropbox = await exportCSVToDropbox(db);
   }
 
   // Capa 3: Base de datos a Dropbox (solo si Dropbox está configurado)
-  if (dbx) {
+  if (dbxClient) {
     console.log('💾 Capa 3: Subiendo base de datos a Dropbox...');
     results.layers.databaseDropbox = await backupDatabaseToDropbox();
   }
@@ -317,12 +423,16 @@ export async function fullBackup(db) {
  * @returns {Object} Estado de la configuración
  */
 export function checkDropboxConfig() {
+  const hasAllCredentials = !!(DROPBOX_REFRESH_TOKEN && DROPBOX_APP_KEY && DROPBOX_APP_SECRET);
+
   return {
-    configured: !!dbx,
-    hasToken: !!DROPBOX_ACCESS_TOKEN,
-    message: dbx
-      ? 'Dropbox configurado correctamente'
-      : 'Dropbox no configurado. Configura DROPBOX_ACCESS_TOKEN en las variables de entorno'
+    configured: hasAllCredentials,
+    hasRefreshToken: !!DROPBOX_REFRESH_TOKEN,
+    hasAppKey: !!DROPBOX_APP_KEY,
+    hasAppSecret: !!DROPBOX_APP_SECRET,
+    message: hasAllCredentials
+      ? 'Dropbox configurado correctamente con refresh token'
+      : 'Dropbox no configurado. Se requiere DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY y DROPBOX_APP_SECRET en las variables de entorno'
   };
 }
 
@@ -334,16 +444,17 @@ export function checkDropboxConfig() {
  */
 export async function validateDropboxToken() {
   try {
-    if (!dbx) {
+    const dbxClient = await getDropboxClient();
+    if (!dbxClient) {
       return {
         valid: false,
-        error: 'Dropbox no configurado. Falta DROPBOX_ACCESS_TOKEN',
-        needsAction: 'Configura DROPBOX_ACCESS_TOKEN en las variables de entorno de Railway'
+        error: 'Dropbox no configurado. Faltan credenciales',
+        needsAction: 'Configura DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY y DROPBOX_APP_SECRET en las variables de entorno de Railway'
       };
     }
 
     // Intentar obtener información de la cuenta
-    const accountInfo = await dbx.usersGetCurrentAccount();
+    const accountInfo = await dbxClient.usersGetCurrentAccount();
 
     return {
       valid: true,
@@ -356,12 +467,12 @@ export async function validateDropboxToken() {
     };
   } catch (error) {
     // Analizar el tipo de error
-    let needsAction = 'Regenerar token de Dropbox';
+    let needsAction = 'Verificar credenciales de Dropbox';
     let errorDetails = error.message;
 
     if (error.status === 401) {
       errorDetails = 'Token expirado, revocado o inválido';
-      needsAction = 'Regenerar token en https://www.dropbox.com/developers/apps y actualizar DROPBOX_ACCESS_TOKEN en Railway';
+      needsAction = 'Regenerar refresh token en https://www.dropbox.com/developers/apps y actualizar DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY y DROPBOX_APP_SECRET en Railway';
     } else if (error.status === 429) {
       errorDetails = 'Rate limit excedido';
       needsAction = 'Esperar unos minutos e intentar nuevamente';
@@ -379,6 +490,31 @@ export async function validateDropboxToken() {
 }
 
 /**
+ * Forzar renovación del token (útil para testing)
+ *
+ * @returns {Object} Resultado de la renovación
+ */
+export async function forceTokenRefresh() {
+  try {
+    currentAccessToken = null;
+    tokenExpiresAt = null;
+
+    const newToken = await refreshAccessToken();
+
+    return {
+      success: true,
+      message: 'Token renovado exitosamente',
+      expiresAt: new Date(tokenExpiresAt).toISOString()
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
  * IMPORTACIÓN: Descargar participantes.csv desde Dropbox
  * Descarga el archivo desde /ActPrion/Databases/participantes.csv
  *
@@ -386,14 +522,15 @@ export async function validateDropboxToken() {
  */
 export async function downloadParticipantsFromDropbox() {
   try {
-    if (!dbx) {
-      throw new Error('Dropbox no configurado. Falta DROPBOX_ACCESS_TOKEN');
+    const dbxClient = await getDropboxClient();
+    if (!dbxClient) {
+      throw new Error('Dropbox no configurado. Faltan credenciales (DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY, DROPBOX_APP_SECRET)');
     }
 
     const dropboxPath = '/ActPrion/Databases/participantes.csv';
 
     // Descargar archivo desde Dropbox
-    const response = await dbx.filesDownload({ path: dropboxPath });
+    const response = await dbxClient.filesDownload({ path: dropboxPath });
 
     if (!response || !response.result || !response.result.fileBinary) {
       throw new Error('No se pudo descargar el archivo desde Dropbox');

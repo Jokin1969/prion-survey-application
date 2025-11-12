@@ -3142,6 +3142,35 @@ app.get('/admin/backup/validate-token', async (req, res) => {
   }
 });
 
+// Forzar renovación del token de Dropbox (útil para testing)
+app.post('/admin/backup/refresh-token', async (req, res) => {
+  try {
+    console.log('🔄 [DIAGNÓSTICO] Forzando renovación de token de Dropbox...');
+    const result = await backupService.forceTokenRefresh();
+
+    if (result.success) {
+      console.log('✅ [DIAGNÓSTICO] Token renovado exitosamente');
+      res.json({
+        ok: true,
+        ...result
+      });
+    } else {
+      console.error('❌ [DIAGNÓSTICO] Error renovando token:', result.error);
+      res.status(500).json({
+        ok: false,
+        ...result
+      });
+    }
+  } catch (error) {
+    console.error('❌ [DIAGNÓSTICO] Error renovando token:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message,
+      needsAction: 'Verificar configuración de Dropbox (DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY, DROPBOX_APP_SECRET)'
+    });
+  }
+});
+
 // Capa 1: Crear backup local
 app.post('/admin/backup/local', async (req, res) => {
   try {

@@ -39,36 +39,46 @@ npm install
 
 ### 2. Configurar Dropbox (opcional pero recomendado)
 
-#### Obtener token de Dropbox:
+#### ⚠️ IMPORTANTE: Sistema de Refresh Token
 
-1. Ir a [Dropbox Developers](https://www.dropbox.com/developers/apps)
-2. Click en "Create app"
-3. Seleccionar:
-   - **API:** Scoped access
-   - **Access:** Full Dropbox
-   - **Name:** ActPrion Backups
-4. En la pestaña "Settings", bajar a "Generated access token"
-5. Click en "Generate" y copiar el token
+Dropbox usa **tokens de corta duración** que expiran en pocas horas. Por eso, el sistema ahora usa **refresh tokens** que permiten renovar automáticamente el access token sin intervención manual.
 
-#### Añadir token a Railway:
+**📖 Para obtener las credenciales completas, sigue la guía detallada:**
+[→ Ver DROPBOX_REFRESH_TOKEN.md](./DROPBOX_REFRESH_TOKEN.md)
+
+#### Resumen de configuración:
+
+Necesitas 3 variables de entorno:
+
+1. `DROPBOX_REFRESH_TOKEN` - Token que nunca expira y permite obtener nuevos access tokens
+2. `DROPBOX_APP_KEY` - ID de tu app en Dropbox
+3. `DROPBOX_APP_SECRET` - Secreto de tu app en Dropbox
+
+#### Añadir variables a Railway:
 
 **Opción A: Desde Railway Dashboard**
 1. Ir a tu proyecto en Railway
 2. Variables → Add Variable
-3. Nombre: `DROPBOX_ACCESS_TOKEN`
-4. Valor: (pegar el token)
-5. Guardar
+3. Agregar las 3 variables:
+   - `DROPBOX_REFRESH_TOKEN`
+   - `DROPBOX_APP_KEY`
+   - `DROPBOX_APP_SECRET`
+4. Guardar
 
 **Opción B: Desde Railway CLI**
 ```bash
-railway variables set DROPBOX_ACCESS_TOKEN="tu-token-aquí"
+railway variables set DROPBOX_REFRESH_TOKEN="tu-refresh-token"
+railway variables set DROPBOX_APP_KEY="tu-app-key"
+railway variables set DROPBOX_APP_SECRET="tu-app-secret"
 ```
 
 #### Local (desarrollo):
 
 Crear/editar archivo `.env`:
 ```bash
-DROPBOX_ACCESS_TOKEN=tu-token-aquí
+DROPBOX_REFRESH_TOKEN=tu-refresh-token-aquí
+DROPBOX_APP_KEY=tu-app-key-aquí
+DROPBOX_APP_SECRET=tu-app-secret-aquí
 ```
 
 ---
@@ -118,13 +128,65 @@ GET /admin/backup/status
 {
   "ok": true,
   "configured": true,
-  "hasToken": true,
-  "message": "Dropbox configurado correctamente",
+  "hasRefreshToken": true,
+  "hasAppKey": true,
+  "hasAppSecret": true,
+  "message": "Dropbox configurado correctamente con refresh token",
   "backupLayers": {
     "layer1": "Backups locales en Railway (automático)",
     "layer2": "CSV a Dropbox (requiere configuración)",
     "layer3": "DB completa a Dropbox (requiere configuración)"
   }
+}
+```
+
+### Validar token de Dropbox (diagnóstico)
+
+```bash
+GET /admin/backup/validate-token
+```
+
+Valida que las credenciales de Dropbox funcionen correctamente haciendo una llamada real a la API.
+
+**Respuesta exitosa:**
+```json
+{
+  "ok": true,
+  "valid": true,
+  "message": "Token válido y funcionando correctamente",
+  "account": {
+    "name": "Tu Nombre",
+    "email": "tu@email.com",
+    "accountId": "dbid:..."
+  }
+}
+```
+
+**Respuesta con error:**
+```json
+{
+  "ok": false,
+  "valid": false,
+  "error": "Token expirado, revocado o inválido",
+  "needsAction": "Regenerar refresh token en https://www.dropbox.com/developers/apps"
+}
+```
+
+### Forzar renovación de token (testing)
+
+```bash
+POST /admin/backup/refresh-token
+```
+
+Fuerza la renovación del access token usando el refresh token. Útil para testing o diagnóstico.
+
+**Respuesta:**
+```json
+{
+  "ok": true,
+  "success": true,
+  "message": "Token renovado exitosamente",
+  "expiresAt": "2025-11-12T14:30:00.000Z"
 }
 ```
 
@@ -379,18 +441,39 @@ railway logs | grep "Backup local creado"
 **Problema:** Los endpoints de Dropbox devuelven error.
 
 **Solución:**
-1. Verificar que `DROPBOX_ACCESS_TOKEN` está configurado en Railway
-2. Verificar el token en: `/admin/backup/status`
-3. Regenerar token si es necesario
+1. Verificar que las 3 variables estén configuradas en Railway:
+   - `DROPBOX_REFRESH_TOKEN`
+   - `DROPBOX_APP_KEY`
+   - `DROPBOX_APP_SECRET`
+2. Verificar el estado en: `/admin/backup/status`
+3. Validar las credenciales en: `/admin/backup/validate-token`
 
-### "Error uploading to Dropbox: invalid_access_token"
+### "Token expirado, revocado o inválido"
 
-**Problema:** El token expiró o es inválido.
+**Problema:** El refresh token fue revocado o es inválido.
 
 **Solución:**
-1. Ir a Dropbox Developers
-2. Regenerar Access Token
-3. Actualizar en Railway: `railway variables set DROPBOX_ACCESS_TOKEN="nuevo-token"`
+1. Ir a [Dropbox App Console](https://www.dropbox.com/developers/apps)
+2. Seguir la guía en [DROPBOX_REFRESH_TOKEN.md](./DROPBOX_REFRESH_TOKEN.md) para obtener un nuevo refresh token
+3. Actualizar las variables en Railway:
+   ```bash
+   railway variables set DROPBOX_REFRESH_TOKEN="nuevo-refresh-token"
+   railway variables set DROPBOX_APP_KEY="tu-app-key"
+   railway variables set DROPBOX_APP_SECRET="tu-app-secret"
+   ```
+
+### Los backups no se guardan en Dropbox
+
+**Problema:** Los backups programados no se suben a Dropbox.
+
+**Solución:**
+1. Verificar configuración: `GET /admin/backup/validate-token`
+2. Ver logs de Railway: `railway logs | grep Dropbox`
+3. Probar manualmente: `POST /admin/backup/csv-dropbox`
+4. Verificar que el token se renueva automáticamente:
+   - El sistema renueva el token automáticamente cada ~4 horas
+   - Ver logs para confirmar: "🔄 Renovando token de Dropbox..."
+   - Ver logs de éxito: "✅ Token renovado exitosamente"
 
 ### Backups no se ejecutan automáticamente
 
@@ -424,6 +507,15 @@ Para problemas o preguntas sobre el sistema de backups:
 ---
 
 ## 🔄 Changelog
+
+### v1.1.0 (2025-11-12)
+- ✅ **Sistema de refresh automático de tokens** implementado
+- ✅ Uso de refresh tokens en lugar de access tokens estáticos
+- ✅ Renovación automática del token antes de expirar (buffer de 5 minutos)
+- ✅ Nuevo endpoint `/admin/backup/validate-token` para diagnóstico
+- ✅ Nuevo endpoint `/admin/backup/refresh-token` para forzar renovación
+- ✅ Documentación completa sobre refresh tokens en DROPBOX_REFRESH_TOKEN.md
+- ✅ Mejoras en mensajes de error y diagnóstico
 
 ### v1.0.0 (2025-11-09)
 - ✅ Sistema de backups en 3 capas implementado
