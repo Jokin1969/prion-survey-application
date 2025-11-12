@@ -3095,23 +3095,7 @@ app.get('/admin/export/responses-csv', async (req, res) => {
 // ENDPOINTS DE BACKUP (Sistema 3 capas)
 // ============================================
 
-// Verificar estado de configuración de Dropbox
-app.get('/admin/backup/status', (req, res) => {
-  try {
-    const status = backupService.checkDropboxConfig();
-    res.json({
-      ok: true,
-      ...status,
-      backupLayers: {
-        layer1: 'Backups locales en Railway (automático)',
-        layer2: 'CSV a Dropbox (requiere configuración)',
-        layer3: 'DB completa a Dropbox (requiere configuración)'
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ ok: false, error: error.message });
-  }
-});
+// Nota: El endpoint /admin/backup/status está definido más abajo con más detalles de diagnóstico
 
 // Validar token de Dropbox (hace una llamada real a la API)
 app.get('/admin/backup/validate-token', async (req, res) => {
@@ -3303,13 +3287,16 @@ app.get('/admin/backup/status', async (req, res) => {
     const now = new Date();
     const nowMadrid = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
 
+    // Verificar configuración de Dropbox
+    const dropboxConfig = backupService.checkDropboxConfig();
+
     // Verificar última ejecución en Dropbox
     let lastCsvBackup = null;
     let lastDbBackup = null;
     let csvBackupCount = 0;
     let dbBackupCount = 0;
 
-    if (process.env.DROPBOX_ACCESS_TOKEN) {
+    if (dropboxConfig.configured) {
       const csvResult = await backupService.listDropboxBackups('csv');
       const dbResult = await backupService.listDropboxBackups('database');
 
@@ -3337,7 +3324,10 @@ app.get('/admin/backup/status', async (req, res) => {
       },
       environment: {
         nodeEnv: process.env.NODE_ENV,
-        dropboxConfigured: !!process.env.DROPBOX_ACCESS_TOKEN,
+        dropboxConfigured: dropboxConfig.configured,
+        hasRefreshToken: dropboxConfig.hasRefreshToken,
+        hasAppKey: dropboxConfig.hasAppKey,
+        hasAppSecret: dropboxConfig.hasAppSecret,
         cronJobsEnabled: process.env.NODE_ENV === 'production'
       },
       cronSchedule: {
