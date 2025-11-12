@@ -167,9 +167,10 @@ if (!fs.existsSync(ASSETS_DIR)) fs.mkdirSync(ASSETS_DIR, { recursive: true });
 // ===== Config =====
 const PORT   = process.env.PORT || 3000;
 
-const EMAIL_USER     = process.env.EMAIL_USER;
-const EMAIL_PASS     = process.env.EMAIL_PASS;
-const RESEARCH_EMAIL = process.env.RESEARCH_EMAIL;
+const EMAIL_USER        = process.env.EMAIL_USER;
+const EMAIL_PASS        = process.env.EMAIL_PASS;
+const RESEARCH_EMAIL    = process.env.RESEARCH_EMAIL;
+const RESEARCH_CC_EMAIL = process.env.RESEARCH_CC_EMAIL || null; // Email opcional para CC
 
 const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, 'data.db');
 const SUBMISSION_TOKEN = process.env.SUBMISSION_TOKEN || null;
@@ -1329,8 +1330,72 @@ function findAsset(candidates) {
 // ===== Mailer =====
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: EMAIL_USER, pass: EMAIL_PASS }
+  auth: { user: EMAIL_USER, pass: EMAIL_PASS },
+  timeout: 30000, // 30 segundos
+  connectionTimeout: 30000 // 30 segundos para establecer conexión
 });
+
+/**
+ * Validar formato de email
+ * @param {string} email - Email a validar
+ * @returns {boolean} - true si el email es válido
+ */
+function isValidEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+}
+
+/**
+ * Enviar email con reintentos automáticos
+ * @param {Object} mailOptions - Opciones de nodemailer
+ * @param {number} maxRetries - Número máximo de reintentos (default: 3)
+ * @returns {Promise} - Resultado del envío
+ */
+async function sendEmailWithRetry(mailOptions, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await transporter.sendMail(mailOptions);
+      if (attempt > 1) {
+        console.log(`✅ Email enviado exitosamente en intento ${attempt}/${maxRetries}`);
+      }
+      return result;
+    } catch (error) {
+      console.error(`❌ Intento ${attempt}/${maxRetries} falló:`, error.message);
+
+      // Si es el último intento, lanzar el error
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // Backoff exponencial: 2s, 4s, 8s
+      const waitTime = 2000 * Math.pow(2, attempt - 1);
+      console.log(`⏳ Esperando ${waitTime/1000}s antes del siguiente intento...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+}
+
+/**
+ * Obtener mensaje de error amigable según el tipo de error de nodemailer
+ * @param {Error} error - Error de nodemailer
+ * @returns {string} - Mensaje de error amigable
+ */
+function getEmailErrorMessage(error) {
+  if (error.responseCode === 535 || error.code === 'EAUTH') {
+    return 'Error de autenticación de email. Verifica las credenciales EMAIL_USER y EMAIL_PASS';
+  }
+  if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
+    return 'Timeout al conectar con el servidor de email';
+  }
+  if (error.code === 'ECONNECTION') {
+    return 'No se pudo establecer conexión con el servidor de email';
+  }
+  if (error.responseCode === 550) {
+    return 'Dirección de email del destinatario inválida o rechazada';
+  }
+  return `Error al enviar email: ${error.message}`;
+}
 
 async function sendNotification({ participantId, response, ts, participant }) {
   if (!EMAIL_USER || !EMAIL_PASS || !RESEARCH_EMAIL) {
@@ -1676,26 +1741,41 @@ app.post('/api/mailer/send', async (req, res) => {
       return res.status(400).json({ ok:false, error:'El destinatario no tiene email' });
     }
 
-    await transporter.sendMail({
+    // Validar formato de email
+    if (!isValidEmail(rec.email)) {
+      return res.status(400).json({ ok:false, error:'Formato de email inválido' });
+    }
+
+    // Preparar opciones de email con CC opcional
+    const mailOptions = {
       from: `Prion Study System <${EMAIL_USER}>`,
       to: `${rec.name} <${rec.email}>`,
       subject,
       html
-    });
+    };
+
+    // Agregar CC si está configurado
+    if (RESEARCH_CC_EMAIL && isValidEmail(RESEARCH_CC_EMAIL)) {
+      mailOptions.cc = RESEARCH_CC_EMAIL;
+    }
+
+    // Enviar con reintentos
+    await sendEmailWithRetry(mailOptions);
 
     appendMailLog({ id: rec.id, email: rec.email, subject, ts: new Date().toISOString() });
 
     res.json({ ok:true, sentTo: rec.email, id: rec.id, subject });
   } catch (e) {
     console.error('[mailer send] error:', e);
-    res.status(500).json({ ok:false, error:'No se pudo enviar el email' });
+    const userError = getEmailErrorMessage(e);
+    res.status(500).json({ ok:false, error: userError, details: e.message });
   }
 });
 
 
 
-// --- API: envío de consentimiento informado con PDF adjunto ---
-app.post('/api/mailer/send-consent', async (req, res) => {
+// --- Manejador compartido para envío de consentimiento informado con PDF ---
+async function handleConsentEmailSend(req, res, logPrefix = 'mailer send-consent') {
   try {
     const { i, tratamiento, subject: subjectOverride } = req.body || {};
     const idx = Math.max(0, parseInt(i || '0', 10) || 0);
@@ -1723,34 +1803,51 @@ app.post('/api/mailer/send-consent', async (req, res) => {
       return res.status(400).json({ ok:false, error:'El destinatario no tiene email' });
     }
 
+    // Validar formato de email
+    if (!isValidEmail(rec.email)) {
+      return res.status(400).json({ ok:false, error:'Formato de email inválido' });
+    }
+
     // Generar PDF del consentimiento
-    const pdf = await generateConsentPDF({ 
-      participant, 
-      accepted: false, 
-      initials: '', 
-      ts: new Date().toISOString() 
+    const pdf = await generateConsentPDF({
+      participant,
+      accepted: false,
+      initials: '',
+      ts: new Date().toISOString()
     });
 
-    await transporter.sendMail({
+    // Preparar opciones de email con CC opcional
+    const mailOptions = {
       from: `Prion Study System <${EMAIL_USER}>`,
       to: `${rec.name} <${rec.email}>`,
-      cc: 'jcastilla@cicbiogune.es',
       subject,
       html,
       attachments: [{
         filename: `Consentimiento_Informado_${rec.id}.pdf`,
         content: pdf
       }]
-    });
+    };
+
+    // Agregar CC si está configurado
+    if (RESEARCH_CC_EMAIL && isValidEmail(RESEARCH_CC_EMAIL)) {
+      mailOptions.cc = RESEARCH_CC_EMAIL;
+    }
+
+    // Enviar con reintentos
+    await sendEmailWithRetry(mailOptions);
 
     appendMailLog({ id: rec.id, email: rec.email, subject, ts: new Date().toISOString() });
 
     res.json({ ok:true, sentTo: rec.email, id: rec.id, subject });
   } catch (e) {
-    console.error('[mailer send-consent] error:', e);
-    res.status(500).json({ ok:false, error:'No se pudo enviar el email: ' + e.message });
+    console.error(`[${logPrefix}] error:`, e);
+    const userError = getEmailErrorMessage(e);
+    res.status(500).json({ ok:false, error: userError, details: e.message });
   }
-});
+}
+
+// --- API: envío de consentimiento informado con PDF adjunto ---
+app.post('/api/mailer/send-consent', (req, res) => handleConsentEmailSend(req, res, 'mailer send-consent'));
 
 // --- API: vista previa para Mailer CI ---
 app.get('/api/mailer-ci/preview', (req, res) => {
@@ -1795,61 +1892,9 @@ app.get('/api/mailer-ci/preview', (req, res) => {
 });
 
 // --- API: envío para Mailer CI ---
-app.post('/api/mailer-ci/send', async (req, res) => {
-  try {
-    const { i, tratamiento, subject: subjectOverride } = req.body || {};
-    const idx = Math.max(0, parseInt(i || '0', 10) || 0);
-    const list = getMailingList();
-    if (list.length === 0) return res.status(404).json({ ok:false, error:'No hay destinatarios con email' });
-    const rec = list[Math.min(idx, list.length - 1)];
-
-    const participant = lookupParticipant(rec.id);
-    if (!participant) return res.status(404).json({ ok:false, error:'Participante no encontrado' });
-
-    const subject = subjectOverride && String(subjectOverride).trim()
-      ? String(subjectOverride).trim()
-      : buildConsentEmailSubject({ nombre: rec.name });
-
-    const html = buildConsentEmailHTML({
-      tratamiento: String(tratamiento || 'Estimad@'),
-      nombre: rec.name,
-      id: rec.id
-    });
-
-    if (!EMAIL_USER || !EMAIL_PASS) {
-      return res.status(400).json({ ok:false, error:'EMAIL_USER/EMAIL_PASS no configurados' });
-    }
-    if (!rec.email) {
-      return res.status(400).json({ ok:false, error:'El destinatario no tiene email' });
-    }
-
-    const pdf = await generateConsentPDF({ 
-      participant, 
-      accepted: false, 
-      initials: '', 
-      ts: new Date().toISOString() 
-    });
-
-    await transporter.sendMail({
-      from: `Prion Study System <${EMAIL_USER}>`,
-      to: `${rec.name} <${rec.email}>`,
-      cc: 'jcastilla@cicbiogune.es',
-      subject,
-      html,
-      attachments: [{
-        filename: `Consentimiento_Informado_${rec.id}.pdf`,
-        content: pdf
-      }]
-    });
-
-    appendMailLog({ id: rec.id, email: rec.email, subject, ts: new Date().toISOString() });
-
-    res.json({ ok:true, sentTo: rec.email, id: rec.id, subject });
-  } catch (e) {
-    console.error('[mailer-ci send] error:', e);
-    res.status(500).json({ ok:false, error:'No se pudo enviar el email: ' + e.message });
-  }
-});
+// NOTA: Este endpoint ahora usa el manejador compartido handleConsentEmailSend()
+// para evitar duplicación de código con /api/mailer/send-consent
+app.post('/api/mailer-ci/send', (req, res) => handleConsentEmailSend(req, res, 'mailer-ci send'));
 
 
 // --- API: vista previa para Mailer Cuestionario ---
@@ -1920,20 +1965,34 @@ app.post('/api/mailer-cuestionario/send', async (req, res) => {
       return res.status(400).json({ ok:false, error:'El destinatario no tiene email' });
     }
 
-    await transporter.sendMail({
+    // Validar formato de email
+    if (!isValidEmail(rec.email)) {
+      return res.status(400).json({ ok:false, error:'Formato de email inválido' });
+    }
+
+    // Preparar opciones de email con CC opcional
+    const mailOptions = {
       from: `Prion Study System <${EMAIL_USER}>`,
       to: `${rec.name} <${rec.email}>`,
-      cc: 'jcastilla@cicbiogune.es',
       subject,
       html
-    });
+    };
+
+    // Agregar CC si está configurado
+    if (RESEARCH_CC_EMAIL && isValidEmail(RESEARCH_CC_EMAIL)) {
+      mailOptions.cc = RESEARCH_CC_EMAIL;
+    }
+
+    // Enviar con reintentos
+    await sendEmailWithRetry(mailOptions);
 
     appendMailLog({ id: rec.id, email: rec.email, subject, ts: new Date().toISOString() });
 
     res.json({ ok:true, sentTo: rec.email, id: rec.id, subject });
   } catch (e) {
     console.error('[mailer-cuestionario send] error:', e);
-    res.status(500).json({ ok:false, error:'No se pudo enviar el email: ' + e.message });
+    const userError = getEmailErrorMessage(e);
+    res.status(500).json({ ok:false, error: userError, details: e.message });
   }
 });
 
@@ -20447,19 +20506,26 @@ try {
       return res.status(500).json({ ok: false, error: 'Configuración de email no disponible' });
     }
 
-    // Enviar email
-    await transporter.sendMail({
+    // Preparar opciones de email
+    const mailOptions = {
       from: `Sistema Cuestionarios ACTPRION <${EMAIL_USER}>`,
       to: 'jokin@icloud.com',
-      cc: 'jcastilla@cicbiogune.es', // Copia para Joaquín
       subject,
       html
-    });
+    };
+
+    // Agregar CC si está configurado
+    if (RESEARCH_CC_EMAIL && isValidEmail(RESEARCH_CC_EMAIL)) {
+      mailOptions.cc = RESEARCH_CC_EMAIL;
+    }
+
+    // Enviar email con reintentos
+    await sendEmailWithRetry(mailOptions);
 
     console.log(`✅ Consulta de ayuda enviada: ${participantId} - Pregunta ${buttonLabel}`);
-    
+
     res.json({ ok: true, message: 'Consulta enviada correctamente' });
-    
+
   } catch (error) {
     console.error('❌ Error enviando consulta de ayuda:', error);
     res.status(500).json({ ok: false, error: 'Error interno del servidor' });
