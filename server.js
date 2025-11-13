@@ -1294,10 +1294,12 @@ function normalizeGender(val) {
   return v;
 }
 
-// 🔧 FUNCIÓN CORREGIDA: recibe género YA normalizado ('f', 'm', o '')
+// 🔧 FUNCIÓN CORREGIDA: acepta múltiples formatos de género
 function deriveTratamiento(normalizedGender) {
-  if (normalizedGender === 'f') return 'Estimada';
-  if (normalizedGender === 'm') return 'Estimado';
+  const g = String(normalizedGender || '').toLowerCase().trim();
+  // Aceptar variantes en español
+  if (g === 'femenino' || g === 'f' || g === 'female') return 'Estimada';
+  if (g === 'masculino' || g === 'm' || g === 'male') return 'Estimado';
   return 'Estimad@';
 }
 
