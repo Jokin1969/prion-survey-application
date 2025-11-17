@@ -3439,7 +3439,8 @@ const forceBackupHandler = async (req, res) => {
     }
 
     // CSV a Dropbox (si está configurado)
-    if (process.env.DROPBOX_ACCESS_TOKEN) {
+    const dropboxConfigured = process.env.DROPBOX_REFRESH_TOKEN && process.env.DROPBOX_APP_KEY && process.env.DROPBOX_APP_SECRET;
+    if (dropboxConfigured) {
       const csvResult = await backupService.exportCSVToDropbox(db);
       results.csv = csvResult;
 
@@ -3455,8 +3456,8 @@ const forceBackupHandler = async (req, res) => {
         console.log(`✅ [MANUAL] DB completa subida a Dropbox: ${(dbResult.size / 1024).toFixed(2)} KB`);
       }
     } else {
-      results.csv = { success: false, error: 'Dropbox no configurado' };
-      results.database = { success: false, error: 'Dropbox no configurado' };
+      results.csv = { success: false, error: 'Dropbox no configurado (faltan DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY o DROPBOX_APP_SECRET)' };
+      results.database = { success: false, error: 'Dropbox no configurado (faltan DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY o DROPBOX_APP_SECRET)' };
     }
 
     res.json({
@@ -21163,8 +21164,10 @@ if (process.env.NODE_ENV === 'production') {
   });
 
   // Capa 2: Exportar CSV a Dropbox diariamente a las 3:00 AM
-  // (solo si Dropbox está configurado)
-  if (process.env.DROPBOX_ACCESS_TOKEN) {
+  // (solo si Dropbox está configurado con el nuevo sistema de refresh tokens)
+  const dropboxConfigured = process.env.DROPBOX_REFRESH_TOKEN && process.env.DROPBOX_APP_KEY && process.env.DROPBOX_APP_SECRET;
+
+  if (dropboxConfigured) {
     cron.schedule('0 3 * * *', async () => {
       console.log('🕐 [CRON] Exportando CSV a Dropbox...');
       try {
@@ -21204,7 +21207,7 @@ if (process.env.NODE_ENV === 'production') {
     console.log('   💾 DB a Dropbox: Domingos a las 4:00 AM');
   } else {
     console.log('⚠️  Dropbox no configurado - Solo backup local diario activo');
-    console.log('   Configura DROPBOX_ACCESS_TOKEN para habilitar backups externos');
+    console.log('   Configura DROPBOX_REFRESH_TOKEN, DROPBOX_APP_KEY y DROPBOX_APP_SECRET para habilitar backups externos');
   }
 } else {
   console.log('ℹ️  Cron jobs de backup desactivados (solo en producción)');
