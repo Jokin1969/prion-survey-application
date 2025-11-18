@@ -1,0 +1,37 @@
+{
+  "name": "connecting-prion-databases",
+  "version": "1.0.0",
+  "description": "Web application for managing and searching prion patient databases",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "cross-env NODE_ENV=development node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "connect-sqlite3": "^0.9.16",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "express-session": "^1.18.2",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  },
+  "keywords": [
+    "prion",
+    "database",
+    "patient-management",
+    "search",
+    "csv"
+  ],
+  "author": "",
+  "license": "MIT"
+}

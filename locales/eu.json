@@ -1,0 +1,60 @@
+{
+  "app": {
+    "title": "Prioi Datu-basea",
+    "subtitle": "Pazienteen Kudeaketa Sistema"
+  },
+  "login": {
+    "title": "Saioa Hasi",
+    "username": "Erabiltzailea",
+    "password": "Pasahitza",
+    "language": "Hizkuntza",
+    "submit": "Sartu",
+    "error": "Erabiltzaile edo pasahitz okerra",
+    "welcome": "Ongi etorri"
+  },
+  "nav": {
+    "home": "Hasiera",
+    "patients": "Pazienteak",
+    "samples": "Laginak",
+    "logout": "Saioa Itxi"
+  },
+  "search": {
+    "placeholder": "Bilatu izena, ID, NAN, sintomak...",
+    "searching": "Bilatzen...",
+    "results": "emaitza aurkitu dira",
+    "noResults": "Ez da emaitzarik aurkitu",
+    "clear": "Bilaketa garbitu"
+  },
+  "table": {
+    "id": "ID",
+    "id_osakidetza": "Osakidetza ID",
+    "id_clinic": "Klinika ID",
+    "name": "Izena",
+    "last_names": "Abizenak",
+    "dni": "NAN",
+    "birth_date": "Jaiotze Data",
+    "age": "Adina",
+    "gender": "Generoa",
+    "prion_disease": "Prioi Gaixotasuna",
+    "mutation": "Mutazioa",
+    "death_date": "Heriotza Data",
+    "symptoms": "Sintomak",
+    "samples": "Laginak",
+    "actions": "Ekintzak"
+  },
+  "gender": {
+    "M": "Gizona",
+    "F": "Emakumea"
+  },
+  "actions": {
+    "view": "Ikusi",
+    "edit": "Editatu",
+    "delete": "Ezabatu",
+    "viewSamples": "Laginak Ikusi"
+  },
+  "messages": {
+    "loading": "Kargatzen...",
+    "error": "Errorea datuak kargatzean",
+    "noData": "Ez dago daturik eskuragarri"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "app": {
+    "title": "Base de Dades de Prions",
+    "subtitle": "Sistema de Gestió de Pacients"
+  },
+  "login": {
+    "title": "Iniciar Sessió",
+    "username": "Usuari",
+    "password": "Contrasenya",
+    "language": "Idioma",
+    "submit": "Entrar",
+    "error": "Usuari o contrasenya incorrectes",
+    "welcome": "Benvingut/da"
+  },
+  "nav": {
+    "home": "Inici",
+    "patients": "Pacients",
+    "samples": "Mostres",
+    "logout": "Tancar Sessió"
+  },
+  "search": {
+    "placeholder": "Cercar per nom, ID, DNI, símptomes...",
+    "searching": "Cercant...",
+    "results": "resultats trobats",
+    "noResults": "No s'han trobat resultats",
+    "clear": "Netejar cerca"
+  },
+  "table": {
+    "id": "ID",
+    "id_osakidetza": "ID Osakidetza",
+    "id_clinic": "ID Clínica",
+    "name": "Nom",
+    "last_names": "Cognoms",
+    "dni": "DNI",
+    "birth_date": "Data Naixement",
+    "age": "Edat",
+    "gender": "Gènere",
+    "prion_disease": "Malaltia Priònica",
+    "mutation": "Mutació",
+    "death_date": "Data Defunció",
+    "symptoms": "Símptomes",
+    "samples": "Mostres",
+    "actions": "Accions"
+  },
+  "gender": {
+    "M": "Masculí",
+    "F": "Femení"
+  },
+  "actions": {
+    "view": "Veure",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "viewSamples": "Veure Mostres"
+  },
+  "messages": {
+    "loading": "Carregant...",
+    "error": "Error en carregar les dades",
+    "noData": "No hi ha dades disponibles"
+  }
+}

@@ -1,0 +1,11 @@
+id,id_osakidetza,id_clinic,name,last_names,dni
+1,TXPR001,CL001,Juan,Pérez Moreno,12345678A
+2,TXPR002,CL001,María,García López,23456789B
+3,TXPR003,CL002,Pedro,Martínez Ruiz,34567890C
+4,TXPR004,CL002,Ana,López Fernández,45678901D
+5,TXPR005,CL003,Carlos,Rodríguez Sánchez,56789012E
+6,TXPR006,CL003,Laura,Fernández Morales,67890123F
+7,TXPR007,CL001,Javier,Sánchez Torres,78901234G
+8,TXPR008,CL004,Isabel,Torres Ramírez,89012345H
+9,TXPR009,CL004,Miguel,Ramírez Castro,90123456I
+10,TXPR010,CL005,Carmen,Castro Ortega,01234567J
