@@ -575,31 +575,41 @@ async function handleCIDelete(idOsakidetza, td, individual) {
 // Render ID Familia cell with upload/download functionality for .svg files
 async function renderFamilyCell(td, individual) {
     const idOsakidetza = individual.id_osakidetza;
+    console.log(`🌳 renderFamilyCell called for: ${idOsakidetza}`, individual);
 
     if (!idOsakidetza) {
+        console.log(`⚠️ No idOsakidetza found`);
         td.textContent = '—';
         return;
     }
 
     // First, get the IK code for this TXPR
     try {
+        console.log(`📡 Fetching TXPR->IK mapping for: ${idOsakidetza}`);
         const mappingResponse = await fetch(`/api/txpr-ik-mapping/${idOsakidetza}`, {
             credentials: 'same-origin'
         });
 
+        console.log(`📡 Mapping response status: ${mappingResponse.status}`);
+
         if (!mappingResponse.ok) {
+            console.log(`✗ No mapping found for ${idOsakidetza}`);
             td.textContent = 'No mapping';
             return;
         }
 
         const mappingData = await mappingResponse.json();
+        console.log(`📦 Mapping data received:`, mappingData);
         const ikCode = mappingData.ik;
+        console.log(`✓ IK code for ${idOsakidetza}: ${ikCode}`);
 
         // Now check if the IK document exists
+        console.log(`📡 Checking if IK document exists: ${ikCode}`);
         const response = await fetch(`/api/check-document/${ikCode}?docType=IK`, {
             credentials: 'same-origin'
         });
         const data = await response.json();
+        console.log(`📦 Check document response:`, data);
 
         // Update cache
         state.documentStatus[`${idOsakidetza}_family`] = data.success && data.exists;

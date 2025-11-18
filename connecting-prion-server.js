@@ -176,9 +176,26 @@ async function loadData(listNumber = 1) {
       mappingData.forEach(row => {
         if (row.txpr && row.ik) {
           txprIkMappingCache[row.txpr] = row.ik;
+          console.log(`  Mapping loaded: ${row.txpr} -> ${row.ik}`);
         }
       });
-      console.log(`Loaded ${Object.keys(txprIkMappingCache).length} TXPR->IK mappings`);
+      console.log(`✓ Loaded ${Object.keys(txprIkMappingCache).length} TXPR->IK mappings from TXPR_IK.csv`);
+    } else {
+      // Fallback to example file
+      const fallbackPath = './data/TXPR_IK.example.csv';
+      if (fs.existsSync(fallbackPath)) {
+        const mappingData = await readCSV(fallbackPath);
+        txprIkMappingCache = {};
+        mappingData.forEach(row => {
+          if (row.txpr && row.ik) {
+            txprIkMappingCache[row.txpr] = row.ik;
+            console.log(`  Mapping loaded: ${row.txpr} -> ${row.ik}`);
+          }
+        });
+        console.log(`✓ Loaded ${Object.keys(txprIkMappingCache).length} TXPR->IK mappings from TXPR_IK.example.csv (fallback)`);
+      } else {
+        console.warn('⚠️ No TXPR_IK.csv or TXPR_IK.example.csv found - ID Familia feature will not work');
+      }
     }
   } catch (error) {
     console.error('Error loading data:', error.message);
@@ -330,15 +347,20 @@ app.get('/api/individuals/:id', requireAuth, async (req, res) => {
 app.get('/api/txpr-ik-mapping/:txpr', requireAuth, (req, res) => {
   try {
     const { txpr } = req.params;
+    console.log(`📍 Looking up TXPR->IK mapping for: ${txpr}`);
+    console.log(`📦 Current cache has ${Object.keys(txprIkMappingCache).length} mappings:`, Object.keys(txprIkMappingCache));
+
     const ikCode = txprIkMappingCache[txpr];
 
     if (ikCode) {
+      console.log(`✓ Found mapping: ${txpr} -> ${ikCode}`);
       res.json({
         success: true,
         txpr: txpr,
         ik: ikCode
       });
     } else {
+      console.log(`✗ No mapping found for: ${txpr}`);
       res.status(404).json({
         success: false,
         error: 'TXPR code not found in mapping',
