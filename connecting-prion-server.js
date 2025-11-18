@@ -46,6 +46,7 @@ const PORT = process.env.PORT || 3000;
 // In-memory data cache
 let individualsCache = [];
 let credentialsCache = [];
+let txprIkMappingCache = {};  // Mapeo TXPR -> IK (ej: TXPR001 -> IK0002)
 
 // Middleware
 app.use(helmet({
@@ -149,6 +150,7 @@ async function loadData(listNumber = 1) {
     const individualsFileName = `${listNumber}_individuals.csv`;
     const individualsPath = process.env.INDIVIDUALS_CSV || `./data/${individualsFileName}`;
     const credentialsPath = process.env.CREDENTIALS_CSV || './data/credentials.csv';
+    const txprIkPath = './data/TXPR_IK.csv';
 
     if (fs.existsSync(individualsPath)) {
       individualsCache = await readCSV(individualsPath);
@@ -165,6 +167,18 @@ async function loadData(listNumber = 1) {
     if (fs.existsSync(credentialsPath)) {
       credentialsCache = await loadCredentials(credentialsPath);
       console.log(`Loaded ${credentialsCache.length} credentials from CSV`);
+    }
+
+    // Load TXPR -> IK mapping
+    if (fs.existsSync(txprIkPath)) {
+      const mappingData = await readCSV(txprIkPath);
+      txprIkMappingCache = {};
+      mappingData.forEach(row => {
+        if (row.txpr && row.ik) {
+          txprIkMappingCache[row.txpr] = row.ik;
+        }
+      });
+      console.log(`Loaded ${Object.keys(txprIkMappingCache).length} TXPR->IK mappings`);
     }
   } catch (error) {
     console.error('Error loading data:', error.message);
@@ -312,6 +326,31 @@ app.get('/api/individuals/:id', requireAuth, async (req, res) => {
   }
 });
 
+// Get IK code for a TXPR code
+app.get('/api/txpr-ik-mapping/:txpr', requireAuth, (req, res) => {
+  try {
+    const { txpr } = req.params;
+    const ikCode = txprIkMappingCache[txpr];
+
+    if (ikCode) {
+      res.json({
+        success: true,
+        txpr: txpr,
+        ik: ikCode
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: 'TXPR code not found in mapping',
+        txpr: txpr
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching TXPR-IK mapping:', error);
+    res.status(500).json({ error: 'Error fetching mapping' });
+  }
+});
+
 // Upload document for individual
 app.post('/api/upload-document', requireAuth, upload.single('document'), async (req, res) => {
   try {
@@ -319,26 +358,28 @@ app.post('/api/upload-document', requireAuth, upload.single('document'), async (
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { id_osakidetza } = req.body;
-    if (!id_osakidetza) {
-      return res.status(400).json({ error: 'id_osakidetza is required' });
+    const { filename, docType = 'CI' } = req.body;
+    if (!filename) {
+      return res.status(400).json({ error: 'filename is required' });
     }
 
     const localFilePath = req.file.path;
+    const subfolder = docType.toUpperCase() === 'IK' ? 'IK' : 'CI';
 
     // Upload to Dropbox
     try {
-      const dropboxResult = await uploadToDropbox(localFilePath, id_osakidetza);
+      const dropboxResult = await uploadToDropbox(localFilePath, filename, subfolder);
 
       // Optionally delete local file after successful upload
       fs.unlinkSync(localFilePath);
 
       res.json({
         success: true,
-        filename: req.file.filename,
+        filename: filename,
         url: dropboxResult.shareUrl,
         dropboxPath: dropboxResult.dropboxPath,
-        message: 'Document uploaded successfully to Dropbox'
+        docType: docType,
+        message: `Document uploaded successfully to Dropbox (${subfolder})`
       });
     } catch (dropboxError) {
       console.error('Error uploading to Dropbox:', dropboxError);
@@ -349,6 +390,7 @@ app.post('/api/upload-document', requireAuth, upload.single('document'), async (
         success: true,
         filename: req.file.filename,
         url: fileUrl,
+        docType: docType,
         message: 'Document uploaded locally (Dropbox unavailable)',
         warning: 'Dropbox upload failed - file stored locally only'
       });
@@ -360,15 +402,18 @@ app.post('/api/upload-document', requireAuth, upload.single('document'), async (
 });
 
 // Delete document
-app.delete('/api/delete-document/:id_osakidetza', requireAuth, async (req, res) => {
+app.delete('/api/delete-document/:filename', requireAuth, async (req, res) => {
   try {
-    const { id_osakidetza } = req.params;
+    const { filename } = req.params;
+    const { docType = 'CI' } = req.query;
+    const subfolder = docType.toUpperCase() === 'IK' ? 'IK' : 'CI';
+
     let deletedFromDropbox = false;
     let deletedFromLocal = false;
 
     // Try to delete from Dropbox first
     try {
-      await deleteFromDropbox(id_osakidetza);
+      await deleteFromDropbox(filename, subfolder);
       deletedFromDropbox = true;
     } catch (dropboxError) {
       console.warn('Error deleting from Dropbox:', dropboxError.message);
@@ -380,7 +425,7 @@ app.delete('/api/delete-document/:id_osakidetza', requireAuth, async (req, res) 
       const files = fs.readdirSync(uploadsDir);
       const fileToDelete = files.find(file => {
         const nameWithoutExt = path.parse(file).name;
-        return nameWithoutExt === id_osakidetza;
+        return nameWithoutExt === filename;
       });
 
       if (fileToDelete) {
@@ -397,7 +442,8 @@ app.delete('/api/delete-document/:id_osakidetza', requireAuth, async (req, res) 
     res.json({
       success: true,
       message: 'Document deleted successfully',
-      deletedFrom: deletedFromDropbox ? (deletedFromLocal ? 'both' : 'dropbox') : 'local'
+      deletedFrom: deletedFromDropbox ? (deletedFromLocal ? 'both' : 'dropbox') : 'local',
+      docType: docType
     });
   } catch (error) {
     console.error('Error deleting document:', error);
@@ -405,14 +451,16 @@ app.delete('/api/delete-document/:id_osakidetza', requireAuth, async (req, res) 
   }
 });
 
-// Check if document exists for id_osakidetza
-app.get('/api/check-document/:id_osakidetza', requireAuth, async (req, res) => {
+// Check if document exists
+app.get('/api/check-document/:filename', requireAuth, async (req, res) => {
   try {
-    const { id_osakidetza } = req.params;
+    const { filename } = req.params;
+    const { docType = 'CI' } = req.query;
+    const subfolder = docType.toUpperCase() === 'IK' ? 'IK' : 'CI';
 
     // Check in Dropbox first
     try {
-      const dropboxResult = await checkDocumentInDropbox(id_osakidetza);
+      const dropboxResult = await checkDocumentInDropbox(filename, subfolder);
 
       if (dropboxResult.exists) {
         return res.json({
@@ -420,7 +468,8 @@ app.get('/api/check-document/:id_osakidetza', requireAuth, async (req, res) => {
           exists: true,
           filename: dropboxResult.filename,
           url: dropboxResult.shareUrl,
-          source: 'dropbox'
+          source: 'dropbox',
+          docType: docType
         });
       }
     } catch (dropboxError) {
@@ -431,13 +480,13 @@ app.get('/api/check-document/:id_osakidetza', requireAuth, async (req, res) => {
     const uploadsDir = path.join(__dirname, 'uploads/documents');
 
     if (!fs.existsSync(uploadsDir)) {
-      return res.json({ success: true, exists: false });
+      return res.json({ success: true, exists: false, docType: docType });
     }
 
     const files = fs.readdirSync(uploadsDir);
     const file = files.find(f => {
       const nameWithoutExt = path.parse(f).name;
-      return nameWithoutExt === id_osakidetza;
+      return nameWithoutExt === filename;
     });
 
     if (file) {
@@ -446,12 +495,14 @@ app.get('/api/check-document/:id_osakidetza', requireAuth, async (req, res) => {
         exists: true,
         filename: file,
         url: `/documents/${file}`,
-        source: 'local'
+        source: 'local',
+        docType: docType
       });
     } else {
       res.json({
         success: true,
-        exists: false
+        exists: false,
+        docType: docType
       });
     }
   } catch (error) {

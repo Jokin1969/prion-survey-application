@@ -236,6 +236,18 @@ function renderTable() {
         tableHeaders.appendChild(th);
     });
 
+    // Add ID CI header
+    const thCI = document.createElement('th');
+    thCI.textContent = 'ID CI';
+    thCI.classList.add('th-ci');
+    tableHeaders.appendChild(thCI);
+
+    // Add ID Familia header
+    const thFamily = document.createElement('th');
+    thFamily.textContent = 'ID Familia';
+    thFamily.classList.add('th-family');
+    tableHeaders.appendChild(thFamily);
+
     // Render rows
     state.filteredIndividuals.forEach(individual => {
         const tr = document.createElement('tr');
@@ -273,6 +285,18 @@ function renderTable() {
 
             tr.appendChild(td);
         });
+
+        // Add ID CI cell
+        const tdCI = document.createElement('td');
+        tdCI.classList.add('td-ci');
+        renderCICell(tdCI, individual);
+        tr.appendChild(tdCI);
+
+        // Add ID Familia cell
+        const tdFamily = document.createElement('td');
+        tdFamily.classList.add('td-family');
+        renderFamilyCell(tdFamily, individual);
+        tr.appendChild(tdFamily);
 
         tableBody.appendChild(tr);
     });
@@ -396,7 +420,7 @@ async function renderCICell(td, individual) {
 
     // Check if document exists (using id_osakidetza as filename)
     try {
-        const response = await fetch(`/api/check-document/${idOsakidetza}`, {
+        const response = await fetch(`/api/check-document/${idOsakidetza}?docType=CI`, {
             credentials: 'same-origin'
         });
         const data = await response.json();
@@ -461,7 +485,8 @@ async function handleCIUpload(idOsakidetza, td, individual) {
         try {
             const formData = new FormData();
             formData.append('document', file);
-            formData.append('id_osakidetza', idOsakidetza);
+            formData.append('filename', idOsakidetza);
+            formData.append('docType', 'CI');
 
             const response = await fetch(`/api/upload-document`, {
                 method: 'POST',
@@ -506,7 +531,7 @@ async function handleCIDelete(idOsakidetza, td, individual) {
     try {
         console.log(`🗑️ Starting delete for: ${idOsakidetza}`);
 
-        const response = await fetch(`/api/delete-document/${idOsakidetza}`, {
+        const response = await fetch(`/api/delete-document/${idOsakidetza}?docType=CI`, {
             method: 'DELETE',
             credentials: 'same-origin'
         });
@@ -542,6 +567,180 @@ async function handleCIDelete(idOsakidetza, td, individual) {
         // Re-render properly instead of using innerHTML (which loses event handlers)
         td.innerHTML = '';
         await renderCICell(td, individual);
+    }
+}
+
+// ============ ID FAMILIA (IK) FUNCTIONS ============
+
+// Render ID Familia cell with upload/download functionality for .svg files
+async function renderFamilyCell(td, individual) {
+    const idOsakidetza = individual.id_osakidetza;
+
+    if (!idOsakidetza) {
+        td.textContent = '—';
+        return;
+    }
+
+    // First, get the IK code for this TXPR
+    try {
+        const mappingResponse = await fetch(`/api/txpr-ik-mapping/${idOsakidetza}`, {
+            credentials: 'same-origin'
+        });
+
+        if (!mappingResponse.ok) {
+            td.textContent = 'No mapping';
+            return;
+        }
+
+        const mappingData = await mappingResponse.json();
+        const ikCode = mappingData.ik;
+
+        // Now check if the IK document exists
+        const response = await fetch(`/api/check-document/${ikCode}?docType=IK`, {
+            credentials: 'same-origin'
+        });
+        const data = await response.json();
+
+        // Update cache
+        state.documentStatus[`${idOsakidetza}_family`] = data.success && data.exists;
+
+        if (data.success && data.exists) {
+            // Document exists - show link and delete button
+            const container = document.createElement('div');
+            container.classList.add('ci-container');
+
+            const link = document.createElement('a');
+            link.href = data.url;
+            link.textContent = ikCode;
+            link.target = '_blank';
+            link.classList.add('ci-link', 'ci-has-file');
+            container.appendChild(link);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '🗑️';
+            deleteBtn.classList.add('ci-delete-btn');
+            deleteBtn.title = translate('documents.delete');
+            deleteBtn.onclick = (e) => {
+                e.preventDefault();
+                handleFamilyDelete(ikCode, td, individual);
+            };
+            container.appendChild(deleteBtn);
+
+            td.appendChild(container);
+        } else {
+            // No document - show upload button
+            const uploadBtn = document.createElement('button');
+            uploadBtn.textContent = translate('documents.noFile');
+            uploadBtn.classList.add('ci-upload-btn', 'ci-no-file');
+            uploadBtn.title = translate('documents.upload');
+            uploadBtn.onclick = () => handleFamilyUpload(ikCode, td, individual);
+            td.appendChild(uploadBtn);
+        }
+    } catch (error) {
+        console.error('Error checking family document:', error);
+        td.textContent = 'Error';
+    }
+}
+
+// Handle ID Familia document upload (.svg)
+async function handleFamilyUpload(ikCode, td, individual) {
+    // Create file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.svg';
+    fileInput.style.display = 'none';
+
+    fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Show uploading state
+        td.innerHTML = `<span class="ci-uploading">${translate('documents.uploading')}</span>`;
+
+        try {
+            const formData = new FormData();
+            formData.append('document', file);
+            formData.append('filename', ikCode);
+            formData.append('docType', 'IK');
+
+            const response = await fetch(`/api/upload-document`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update cache - document now exists
+                state.documentStatus[`${individual.id_osakidetza}_family`] = true;
+
+                // Re-render the cell with the new document
+                td.innerHTML = '';
+                await renderFamilyCell(td, individual);
+            } else {
+                alert(translate('documents.uploadError'));
+                td.innerHTML = '';
+                await renderFamilyCell(td, individual);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert(translate('documents.uploadError'));
+            td.innerHTML = '';
+            await renderFamilyCell(td, individual);
+        }
+    };
+
+    fileInput.click();
+}
+
+// Handle ID Familia document delete
+async function handleFamilyDelete(ikCode, td, individual) {
+    if (!confirm(translate('documents.deleteConfirm'))) {
+        return;
+    }
+
+    // Show deleting state
+    td.innerHTML = `<span class="ci-uploading">Eliminando...</span>`;
+
+    try {
+        console.log(`🗑️ Starting delete for IK: ${ikCode}`);
+
+        const response = await fetch(`/api/delete-document/${ikCode}?docType=IK`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+
+        console.log(`📡 Delete response status: ${response.status}`);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Delete failed:', response.status, errorData);
+            throw new Error(errorData.error || `Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log(`📦 Delete response data:`, data);
+
+        if (data.success) {
+            // Update cache - document no longer exists
+            state.documentStatus[`${individual.id_osakidetza}_family`] = false;
+
+            // Re-render the cell without the document
+            td.innerHTML = '';
+            await renderFamilyCell(td, individual);
+
+            console.log(`✅ Document deleted successfully: ${ikCode}`);
+        } else {
+            throw new Error('Delete failed - no success response');
+        }
+    } catch (error) {
+        console.error('❌ Delete error:', error);
+        alert(`${translate('documents.deleteError')}\n\nError: ${error.message}`);
+
+        // Re-render properly instead of using innerHTML (which loses event handlers)
+        td.innerHTML = '';
+        await renderFamilyCell(td, individual);
     }
 }
 

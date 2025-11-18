@@ -40,7 +40,8 @@ export async function syncCSVFromDropbox() {
       '3_individuals.csv',
       '4_individuals.csv',
       '5_individuals.csv',
-      '6_individuals.csv'
+      '6_individuals.csv',
+      'TXPR_IK.csv'  // Mapeo de TXPR a códigos IK para árboles familiares
     ];
 
     let downloadedCount = 0;

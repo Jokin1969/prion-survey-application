@@ -5,7 +5,9 @@ import path from 'path';
 const DROPBOX_APP_KEY = process.env.DROPBOX_APP_KEY;
 const DROPBOX_APP_SECRET = process.env.DROPBOX_APP_SECRET;
 const DROPBOX_REFRESH_TOKEN = process.env.DROPBOX_REFRESH_TOKEN;
-const DROPBOX_FOLDER = '/ConnectingPrion/documents/CI';
+const DROPBOX_BASE_FOLDER = '/ConnectingPrion/documents';
+const DROPBOX_FOLDER_CI = `${DROPBOX_BASE_FOLDER}/CI`;  // Para documentos CI (PDF)
+const DROPBOX_FOLDER_IK = `${DROPBOX_BASE_FOLDER}/IK`;  // Para árboles familiares (SVG)
 
 let dbx = null;
 
@@ -42,10 +44,11 @@ function initDropbox() {
 /**
  * Upload a file to Dropbox
  * @param {string} localFilePath - Path to local file
- * @param {string} idOsakidetza - Osakidetza ID to use as filename (e.g., TXPR001)
+ * @param {string} filename - Filename to use (e.g., TXPR001 or IK0002)
+ * @param {string} subfolder - Subfolder: 'CI' or 'IK' (default: 'CI')
  * @returns {Promise<Object>} Upload result with Dropbox path and share URL
  */
-export async function uploadToDropbox(localFilePath, idOsakidetza) {
+export async function uploadToDropbox(localFilePath, filename, subfolder = 'CI') {
   if (!initDropbox()) {
     throw new Error('Dropbox not configured');
   }
@@ -53,7 +56,8 @@ export async function uploadToDropbox(localFilePath, idOsakidetza) {
   try {
     const fileContent = fs.readFileSync(localFilePath);
     const ext = path.extname(localFilePath);
-    const dropboxPath = `${DROPBOX_FOLDER}/${idOsakidetza}${ext}`;
+    const targetFolder = subfolder === 'IK' ? DROPBOX_FOLDER_IK : DROPBOX_FOLDER_CI;
+    const dropboxPath = `${targetFolder}/${filename}${ext}`;
 
     // Upload file
     const uploadResult = await dbx.filesUpload({
@@ -119,20 +123,26 @@ export async function uploadToDropbox(localFilePath, idOsakidetza) {
 
 /**
  * Check if a document exists in Dropbox
- * @param {string} idOsakidetza - Osakidetza ID to check (e.g., TXPR001)
+ * @param {string} filename - Filename to check (e.g., TXPR001 or IK0002)
+ * @param {string} subfolder - Subfolder: 'CI' or 'IK' (default: 'CI')
  * @returns {Promise<Object>} Result with exists flag and share URL if found
  */
-export async function checkDocumentInDropbox(idOsakidetza) {
+export async function checkDocumentInDropbox(filename, subfolder = 'CI') {
   if (!initDropbox()) {
     return { exists: false };
   }
 
   try {
-    // Search in both locations (new CI folder and old documents folder for transition)
-    const foldersToCheck = [
-      '/ConnectingPrion/documents/CI',      // Nueva ubicación
-      '/ConnectingPrion/documents'          // Ubicación antigua (para migración)
-    ];
+    // Search in both locations (new subfolder and old documents folder for transition)
+    const foldersToCheck = subfolder === 'IK'
+      ? [
+          '/ConnectingPrion/documents/IK',      // Nueva ubicación IK
+          '/ConnectingPrion/documents'          // Ubicación antigua (para migración)
+        ]
+      : [
+          '/ConnectingPrion/documents/CI',      // Nueva ubicación CI
+          '/ConnectingPrion/documents'          // Ubicación antigua (para migración)
+        ];
 
     let file = null;
 
@@ -142,7 +152,7 @@ export async function checkDocumentInDropbox(idOsakidetza) {
 
         const foundFile = searchResult.result.entries.find(entry => {
           const fileName = path.parse(entry.name).name;
-          return fileName === idOsakidetza;
+          return fileName === filename;
         });
 
         if (foundFile) {
@@ -217,20 +227,26 @@ export async function checkDocumentInDropbox(idOsakidetza) {
 
 /**
  * Delete a document from Dropbox
- * @param {string} idOsakidetza - Osakidetza ID to delete (e.g., TXPR001)
+ * @param {string} filename - Filename to delete (e.g., TXPR001 or IK0002)
+ * @param {string} subfolder - Subfolder: 'CI' or 'IK' (default: 'CI')
  * @returns {Promise<Object>} Result of deletion
  */
-export async function deleteFromDropbox(idOsakidetza) {
+export async function deleteFromDropbox(filename, subfolder = 'CI') {
   if (!initDropbox()) {
     throw new Error('Dropbox not configured');
   }
 
   try {
-    // Search in both locations (new CI folder and old documents folder for transition)
-    const foldersToCheck = [
-      '/ConnectingPrion/documents/CI',      // Nueva ubicación
-      '/ConnectingPrion/documents'          // Ubicación antigua (para migración)
-    ];
+    // Search in both locations (new subfolder and old documents folder for transition)
+    const foldersToCheck = subfolder === 'IK'
+      ? [
+          '/ConnectingPrion/documents/IK',      // Nueva ubicación IK
+          '/ConnectingPrion/documents'          // Ubicación antigua (para migración)
+        ]
+      : [
+          '/ConnectingPrion/documents/CI',      // Nueva ubicación CI
+          '/ConnectingPrion/documents'          // Ubicación antigua (para migración)
+        ];
 
     let fileToDelete = null;
 
@@ -240,7 +256,7 @@ export async function deleteFromDropbox(idOsakidetza) {
 
         const file = searchResult.result.entries.find(entry => {
           const fileName = path.parse(entry.name).name;
-          return fileName === idOsakidetza;
+          return fileName === filename;
         });
 
         if (file) {
@@ -255,7 +271,8 @@ export async function deleteFromDropbox(idOsakidetza) {
     }
 
     if (!fileToDelete) {
-      throw new Error('File not found in Dropbox (checked both CI and documents folders)');
+      const folderType = subfolder === 'IK' ? 'IK' : 'CI';
+      throw new Error(`File not found in Dropbox (checked both ${folderType} and documents folders)`);
     }
 
     // Delete the file
@@ -277,50 +294,56 @@ export async function deleteFromDropbox(idOsakidetza) {
 }
 
 /**
- * Ensure Dropbox folder exists (creates nested folders if needed)
+ * Ensure Dropbox folders exist (creates nested folders if needed)
+ * Creates both CI and IK subfolders
  */
 export async function ensureDropboxFolder() {
   if (!initDropbox()) {
     return false;
   }
 
-  try {
-    await dbx.filesGetMetadata({ path: DROPBOX_FOLDER });
-    console.log(`✅ Dropbox folder exists: ${DROPBOX_FOLDER}`);
-    return true;
-  } catch (error) {
-    if (error.status === 409) {
-      // Folder doesn't exist, create it (including parent folders)
-      try {
-        // Split path and create each folder level
-        const pathParts = DROPBOX_FOLDER.split('/').filter(p => p);
-        let currentPath = '';
+  const foldersToCreate = [DROPBOX_FOLDER_CI, DROPBOX_FOLDER_IK];
 
-        for (const part of pathParts) {
-          currentPath += `/${part}`;
+  for (const folderPath of foldersToCreate) {
+    try {
+      await dbx.filesGetMetadata({ path: folderPath });
+      console.log(`✅ Dropbox folder exists: ${folderPath}`);
+    } catch (error) {
+      if (error.status === 409) {
+        // Folder doesn't exist, create it (including parent folders)
+        try {
+          // Split path and create each folder level
+          const pathParts = folderPath.split('/').filter(p => p);
+          let currentPath = '';
 
-          try {
-            await dbx.filesGetMetadata({ path: currentPath });
-            console.log(`  ✅ Folder exists: ${currentPath}`);
-          } catch (checkError) {
-            if (checkError.status === 409) {
-              // Folder doesn't exist, create it
-              await dbx.filesCreateFolderV2({ path: currentPath });
-              console.log(`  ✅ Created folder: ${currentPath}`);
+          for (const part of pathParts) {
+            currentPath += `/${part}`;
+
+            try {
+              await dbx.filesGetMetadata({ path: currentPath });
+              console.log(`  ✅ Folder exists: ${currentPath}`);
+            } catch (checkError) {
+              if (checkError.status === 409) {
+                // Folder doesn't exist, create it
+                await dbx.filesCreateFolderV2({ path: currentPath });
+                console.log(`  ✅ Created folder: ${currentPath}`);
+              }
             }
           }
-        }
 
-        console.log(`✅ Dropbox folder structure ready: ${DROPBOX_FOLDER}`);
-        return true;
-      } catch (createError) {
-        console.error('Error creating Dropbox folder:', createError);
+          console.log(`✅ Dropbox folder structure ready: ${folderPath}`);
+        } catch (createError) {
+          console.error('Error creating Dropbox folder:', createError);
+          return false;
+        }
+      } else {
+        console.error('Error checking Dropbox folder:', error);
         return false;
       }
     }
-    console.error('Error checking Dropbox folder:', error);
-    return false;
   }
+
+  return true;
 }
 
 /**
