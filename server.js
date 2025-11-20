@@ -17,6 +17,9 @@ import connectSqlite3 from 'connect-sqlite3';
 import crypto from 'crypto';
 import cron from 'node-cron';
 import * as backupService from './services/backup-service.js';
+import { syncCSVFromDropbox } from './services/csvSync.js';
+import { uploadToDropbox, checkDocumentInDropbox, deleteFromDropbox, ensureDropboxFolder } from './services/dropboxService.js';
+import { readCSV } from './services/csvService.js';
 
 console.log('🚀 Servidor iniciado - Versión con debugging');
 
@@ -181,6 +184,9 @@ const PARTICIPANT_CSV = path.resolve(
 
 const ADMIN_USER = process.env.ADMIN_USER || null;
 const ADMIN_PASS = process.env.ADMIN_PASS || null;
+
+// ===== Data Caches =====
+let txprIkMappingCache = {};  // Mapeo TXPR -> IK (ej: TXPR001 -> IK0002)
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
@@ -20679,6 +20685,138 @@ app.get('/api/whoami', (req, res) => {
   return res.json({ ok:true, id, name:participant.name||null, full_name:participant.full_name||null, lang:participant.lang||'es', dni:participant.dni||null });
 });
 
+// ===== CONNECTING PRION DATABASES ENDPOINTS =====
+
+// Get IK code for a TXPR code (ID Familia mapping)
+app.get('/api/txpr-ik-mapping/:txpr', (req, res) => {
+  try {
+    const { txpr } = req.params;
+    console.log(`📍 Looking up TXPR->IK mapping for: ${txpr}`);
+    console.log(`📦 Current cache has ${Object.keys(txprIkMappingCache).length} mappings:`, Object.keys(txprIkMappingCache));
+
+    const ikCode = txprIkMappingCache[txpr];
+
+    if (ikCode) {
+      console.log(`✅ Found mapping: ${txpr} -> ${ikCode}`);
+      res.json({
+        success: true,
+        txpr: txpr,
+        ik: ikCode
+      });
+    } else {
+      console.log(`❌ No mapping found for: ${txpr}`);
+      res.status(404).json({
+        success: false,
+        error: 'TXPR code not found in mapping',
+        txpr: txpr
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching TXPR-IK mapping:', error);
+    res.status(500).json({ error: 'Error fetching mapping' });
+  }
+});
+
+// Check if a document exists in Dropbox
+app.get('/api/documents/check', async (req, res) => {
+  try {
+    const { filename, docType } = req.query;
+
+    if (!filename) {
+      return res.status(400).json({ error: 'Filename is required' });
+    }
+
+    const subfolder = docType === 'family' ? 'IK' : 'CI';
+    const result = await checkDocumentInDropbox(filename, subfolder);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error checking document:', error);
+    res.status(500).json({ error: 'Error checking document' });
+  }
+});
+
+// Upload a document to Dropbox
+const documentStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    cb(null, `${timestamp}-${file.originalname}`);
+  }
+});
+
+const uploadDocument = multer({
+  storage: documentStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: function (req, file, cb) {
+    const allowedMimes = ['application/pdf', 'image/svg+xml'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF and SVG files are allowed'));
+    }
+  }
+});
+
+app.post('/api/documents/upload', uploadDocument.single('document'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { filename, docType } = req.body;
+
+    if (!filename) {
+      fs.unlinkSync(req.file.path); // Clean up uploaded file
+      return res.status(400).json({ error: 'Filename is required' });
+    }
+
+    const subfolder = docType === 'family' ? 'IK' : 'CI';
+    const result = await uploadToDropbox(req.file.path, filename, subfolder);
+
+    // Clean up local file after upload
+    fs.unlinkSync(req.file.path);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error uploading document:', error);
+
+    // Clean up local file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.status(500).json({ error: error.message || 'Error uploading document' });
+  }
+});
+
+// Delete a document from Dropbox
+app.delete('/api/documents/delete', async (req, res) => {
+  try {
+    const { filename, docType } = req.query;
+
+    if (!filename) {
+      return res.status(400).json({ error: 'Filename is required' });
+    }
+
+    const subfolder = docType === 'family' ? 'IK' : 'CI';
+    const result = await deleteFromDropbox(filename, subfolder);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    res.status(500).json({ error: error.message || 'Error deleting document' });
+  }
+});
+
+// ===== END CONNECTING PRION DATABASES ENDPOINTS =====
+
 app.post('/api/submit', async (req, res) => {
   let { response, id, token } = req.body || {};
   response = normalizeResponse(response);
@@ -21242,10 +21380,81 @@ process.on('SIGINT', () => {
 });
 
 // ============================================
+// LOAD DATA ON STARTUP
+// ============================================
+
+/**
+ * Load TXPR-IK mapping from CSV
+ */
+async function loadTXPRIKMapping() {
+  const txprIkPath = path.join(DATA_DIR, 'TXPR_IK.csv');
+
+  try {
+    if (fs.existsSync(txprIkPath)) {
+      const mappingData = await readCSV(txprIkPath);
+      txprIkMappingCache = {};
+      mappingData.forEach(row => {
+        if (row.txpr && row.ik) {
+          txprIkMappingCache[row.txpr] = row.ik;
+          console.log(`  📌 Mapping loaded: ${row.txpr} -> ${row.ik}`);
+        }
+      });
+      console.log(`✅ Loaded ${Object.keys(txprIkMappingCache).length} TXPR->IK mappings from TXPR_IK.csv`);
+    } else {
+      // Fallback to example file
+      const fallbackPath = path.join(DATA_DIR, 'TXPR_IK.example.csv');
+      if (fs.existsSync(fallbackPath)) {
+        const mappingData = await readCSV(fallbackPath);
+        txprIkMappingCache = {};
+        mappingData.forEach(row => {
+          if (row.txpr && row.ik) {
+            txprIkMappingCache[row.txpr] = row.ik;
+            console.log(`  📌 Mapping loaded: ${row.txpr} -> ${row.ik}`);
+          }
+        });
+        console.log(`✅ Loaded ${Object.keys(txprIkMappingCache).length} TXPR->IK mappings from TXPR_IK.example.csv (fallback)`);
+      } else {
+        console.warn('⚠️  No TXPR_IK.csv or TXPR_IK.example.csv found - ID Familia feature will not work');
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error loading TXPR-IK mapping:', error);
+  }
+}
+
+/**
+ * Initialize data on server startup
+ */
+async function initializeData() {
+  console.log('\n🔄 Initializing data...\n');
+
+  // Sync CSVs from Dropbox
+  try {
+    await syncCSVFromDropbox();
+  } catch (error) {
+    console.warn('⚠️  CSV sync failed, using local files:', error.message);
+  }
+
+  // Load TXPR-IK mapping
+  await loadTXPRIKMapping();
+
+  // Ensure Dropbox folders exist
+  try {
+    await ensureDropboxFolder();
+  } catch (error) {
+    console.warn('⚠️  Could not verify Dropbox folders:', error.message);
+  }
+
+  console.log('\n✅ Data initialization complete\n');
+}
+
+// ============================================
 // INICIAR SERVIDOR
 // ============================================
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+// Initialize data before starting server
+initializeData().then(() => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('========================================');
   console.log(`✅ [PrionStudy] Server READY`);
   console.log(`   Port: ${PORT}`);
@@ -21254,12 +21463,35 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('========================================');
 });
 
-// Manejar errores del servidor
-server.on('error', (error) => {
-  console.error('❌ Error en el servidor:', error);
-  if (error.code === 'EADDRINUSE') {
-    console.error(`❌ Puerto ${PORT} ya está en uso`);
-    process.exit(1);
-  }
-});"// Emergency sync $(date)" 
+  // Manejar errores del servidor
+  server.on('error', (error) => {
+    console.error('❌ Error en el servidor:', error);
+    if (error.code === 'EADDRINUSE') {
+      console.error(`❌ Puerto ${PORT} ya está en uso`);
+      process.exit(1);
+    }
+  });
+}).catch((error) => {
+  console.error('❌ Error initializing data:', error);
+  console.error('Server will start anyway, but some features may not work');
+
+  // Start server even if data initialization fails
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log('========================================');
+    console.log(`⚠️  [PrionStudy] Server STARTED (with errors)`);
+    console.log(`   Port: ${PORT}`);
+    console.log(`   Environment: ${NODE_ENV}`);
+    console.log(`   Time: ${new Date().toISOString()}`);
+    console.log('========================================');
+  });
+
+  server.on('error', (error) => {
+    console.error('❌ Error en el servidor:', error);
+    if (error.code === 'EADDRINUSE') {
+      console.error(`❌ Puerto ${PORT} ya está en uso`);
+      process.exit(1);
+    }
+  });
+});
+"// Emergency sync $(date)" 
 // Force Railway sync with debugging Thu Nov  6 09:14:17 RST 2025

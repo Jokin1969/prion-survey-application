@@ -1,0 +1,60 @@
+{
+  "app": {
+    "title": "Prion Database",
+    "subtitle": "Patient Management System"
+  },
+  "login": {
+    "title": "Login",
+    "username": "Username",
+    "password": "Password",
+    "language": "Language",
+    "submit": "Sign In",
+    "error": "Invalid username or password",
+    "welcome": "Welcome"
+  },
+  "nav": {
+    "home": "Home",
+    "patients": "Patients",
+    "samples": "Samples",
+    "logout": "Logout"
+  },
+  "search": {
+    "placeholder": "Search by name, ID, DNI, symptoms...",
+    "searching": "Searching...",
+    "results": "results found",
+    "noResults": "No results found",
+    "clear": "Clear search"
+  },
+  "table": {
+    "id": "ID",
+    "id_osakidetza": "Osakidetza ID",
+    "id_clinic": "Clinic ID",
+    "name": "Name",
+    "last_names": "Last Names",
+    "dni": "ID Number",
+    "birth_date": "Birth Date",
+    "age": "Age",
+    "gender": "Gender",
+    "prion_disease": "Prion Disease",
+    "mutation": "Mutation",
+    "death_date": "Death Date",
+    "symptoms": "Symptoms",
+    "samples": "Samples",
+    "actions": "Actions"
+  },
+  "gender": {
+    "M": "Male",
+    "F": "Female"
+  },
+  "actions": {
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "viewSamples": "View Samples"
+  },
+  "messages": {
+    "loading": "Loading...",
+    "error": "Error loading data",
+    "noData": "No data available"
+  }
+}

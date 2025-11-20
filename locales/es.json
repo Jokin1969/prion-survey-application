@@ -1,0 +1,60 @@
+{
+  "app": {
+    "title": "Base de Datos de Priones",
+    "subtitle": "Sistema de Gestión de Pacientes"
+  },
+  "login": {
+    "title": "Iniciar Sesión",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "language": "Idioma",
+    "submit": "Entrar",
+    "error": "Usuario o contraseña incorrectos",
+    "welcome": "Bienvenido/a"
+  },
+  "nav": {
+    "home": "Inicio",
+    "patients": "Pacientes",
+    "samples": "Muestras",
+    "logout": "Cerrar Sesión"
+  },
+  "search": {
+    "placeholder": "Buscar por nombre, ID, DNI, síntomas...",
+    "searching": "Buscando...",
+    "results": "resultados encontrados",
+    "noResults": "No se encontraron resultados",
+    "clear": "Limpiar búsqueda"
+  },
+  "table": {
+    "id": "ID",
+    "id_osakidetza": "ID Osakidetza",
+    "id_clinic": "ID Clínica",
+    "name": "Nombre",
+    "last_names": "Apellidos",
+    "dni": "DNI",
+    "birth_date": "Fecha Nacimiento",
+    "age": "Edad",
+    "gender": "Género",
+    "prion_disease": "Enfermedad Priónica",
+    "mutation": "Mutación",
+    "death_date": "Fecha Fallecimiento",
+    "symptoms": "Síntomas",
+    "samples": "Muestras",
+    "actions": "Acciones"
+  },
+  "gender": {
+    "M": "Masculino",
+    "F": "Femenino"
+  },
+  "actions": {
+    "view": "Ver",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "viewSamples": "Ver Muestras"
+  },
+  "messages": {
+    "loading": "Cargando...",
+    "error": "Error al cargar los datos",
+    "noData": "No hay datos disponibles"
+  }
+}

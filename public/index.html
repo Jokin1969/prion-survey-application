@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connecting Prion Databases</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <div class="login-header">
+                <h1 id="login-title">Base de Datos de Priones</h1>
+                <p id="login-subtitle">Sistema de Gestión de Pacientes</p>
+            </div>
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="username" id="label-username">Usuario</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password" id="label-password">Contraseña</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label for="language" id="label-language">Idioma</label>
+                    <select id="language" name="language">
+                        <option value="es">Español</option>
+                        <option value="ca">Català</option>
+                        <option value="en">English</option>
+                        <option value="eu">Euskara</option>
+                    </select>
+                </div>
+                <div id="login-error" class="error-message"></div>
+                <button type="submit" class="btn btn-primary" id="btn-login">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application Screen -->
+    <div id="app-screen" class="screen">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1 id="app-title">Base de Datos de Priones</h1>
+                </div>
+                <div class="header-right">
+                    <span id="user-info" class="user-info"></span>
+                    <button id="btn-logout" class="btn btn-secondary">Cerrar Sesión</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Search Section -->
+            <section class="search-section">
+                <div class="search-container">
+                    <input
+                        type="text"
+                        id="search-input"
+                        class="search-input"
+                        placeholder="Buscar por nombre, ID, DNI, síntomas..."
+                    >
+                    <button id="btn-clear-search" class="btn btn-clear">✕</button>
+                </div>
+                <div id="search-results-count" class="search-results-count"></div>
+            </section>
+
+            <!-- Table Section -->
+            <section class="table-section">
+                <div class="table-container">
+                    <table id="individuals-table" class="data-table">
+                        <thead>
+                            <tr id="table-headers">
+                                <!-- Headers will be populated by JavaScript -->
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Data will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Loading Spinner -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p id="loading-text">Cargando...</p>
+            </div>
+
+            <!-- No Results Message -->
+            <div id="no-results" class="no-results hidden">
+                <p id="no-results-text">No se encontraron resultados</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/app.js" type="module"></script>
+</body>
+</html>
